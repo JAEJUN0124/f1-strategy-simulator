@@ -22,3 +22,6 @@ F1 레이스 데이터를 기반으로 다양한 타이어 전략을 시뮬레�
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
+```
+## figma Slides
+https://www.figma.com/slides/vgQnnDWOYT2OOQfy833qUU/%EA%B0%9C%EB%B0%9C-%EC%A0%9C%EC%95%88%EC%84%9C?node-id=1-42&t=utr6OnXfSGhFfHAL-1
