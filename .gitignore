@@ -14,7 +14,11 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+
+# --- Flutter 예외 규칙 ---
+# Python 규칙이 실수로 무시한 Flutter 소스 폴더를 다시 포함시킴
+!frontend/lib/
+
 lib64/
 parts/
 sdist/
