@@ -1,40 +1,71 @@
-# backend/main.py
-
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import data, simulation  # 1. 라우터 파일 임포트
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from core.cache import setup_fastf1_cache, clear_fastf1_cache
 
-# FastAPI 앱 인스턴스 생성
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+
+# --- FastAPI 앱 및 스케줄러 초기화 ---
 app = FastAPI()
+scheduler = AsyncIOScheduler()
 
 # --- CORS 설정 ---
-# (v2).txt 1.7 항목 
-# Flutter 앱의 로컬 개발 환경(localhost) 등에서의 접근을 허용합니다.
-# 실제 배포 시에는 origins 목록을 수정해야 할 수 있습니다.
+# (v4) 1.3 항목 
+# 로컬 개발 환경(Flutter Web/App)에서의 접근을 허용합니다.
 origins = [
     "http://localhost",
-    "http://localhost:8080", # Flutter 웹 기본 포트 (변경 가능)
-    # Flutter 모바일 앱의 경우 특정 origin이 없을 수 있으나, 
-    # 웹 테스트를 위해 localhost를 추가합니다.
+    "http://localhost:8080", # Flutter Web 기본 포트 (변경 가능)
+    "http://127.0.0.1",
+    "http://127.0.0.1:8080",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"], # 모든 HTTP 메소드 허용
-    allow_headers=["*"], # 모든 HTTP 헤더 허용
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# -----------------
 
-# 2. 생성한 라우터들을 앱에 포함시킵니다.
-app.include_router(data.router)
-app.include_router(simulation.router)
+# --- 앱 시작/종료 이벤트 ---
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    앱 시작 시 FastF1 캐시 설정 및 캐시 정리 스케줄러를 시작합니다.
+    """
+    # 1. FastF1 캐시 설정 (용량 제한) 
+    setup_fastf1_cache()
+    
+    # 2. 캐시 정리 스케줄러 (시간 제한)
+    # 24시간(86400초)마다 clear_fastf1_cache 함수 실행
+    scheduler.add_job(
+        clear_fastf1_cache,
+        trigger=IntervalTrigger(seconds=86400), # 24시간
+        id="daily_cache_clear",
+        replace_existing=True,
+    )
+    scheduler.start()
+    logging.info("APScheduler 시작됨. (24시간 캐시 정리)")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    앱 종료 시 스케줄러를 종료합니다.
+    """
+    scheduler.shutdown()
+    logging.info("APScheduler 종료됨.")
+
+# --- 기본 엔드포인트 ---
 
 @app.get("/")
-def read_root():
-    return {"message": "Hello World"}
+async def read_root():
+    """
+    서버 상태 확인용 "Hello World"
+    """
+    return {"message": "F1 Strategy Simulator (v4) Backend - Hello World"}
 
-# (v2).txt 1.2 항목에 따라 uvicorn으로 실행합니다.
-# 터미널에서 다음 명령어로 서버를 실행할 수 있습니다:
-# uvicorn main:app --reload
+# (향후 여기에 routers/simulation.py, routers/data.py 등을 include할 예정)
