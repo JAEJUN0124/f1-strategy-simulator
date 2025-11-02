@@ -1,73 +1,85 @@
-// frontend/lib/services/api_service.dart
-
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import '../models/race_info.dart';
 import '../models/driver_info.dart';
-import '../models/simulation_models.dart';
+import '../models/race_info.dart';
+import '../models/simulation_request.dart';
+import '../models/simulation_response.dart';
 
-// (v2).txt 3.3 - Dio 클라이언트 초기화
 class ApiService {
-  // Dio 인스턴스 생성
-  final Dio _dio = Dio(
-    BaseOptions(
-      // (v2).txt 3.3 - Base URL 설정
-      // 백엔드 서버 주소 (현재 로컬에서 실행 중)
-      baseUrl: 'http://127.0.0.1:8000', 
-    ),
-  );
+  late final Dio _dio;
 
-  // (v2).txt 3.3 - getRaces 함수
+  // (v4) 3.3. Dio 클라이언트 초기화
+  ApiService() {
+    _dio = Dio(
+      BaseOptions(
+        // (v4) 1.3. FastAPI 기본 URL
+        baseUrl: 'http://127.0.0.1:8000', 
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 30),
+      ),
+    );
+    
+    // (선택사항) 로깅 인터셉터
+    _dio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
+  }
+
+  /// (v4) 3.3. API: GET /api/races/{year}
   Future<List<RaceInfo>> getRaces(int year) async {
     try {
       final response = await _dio.get('/api/races/$year');
       
-      // List<dynamic> -> List<RaceInfo>
-      return (response.data as List)
-          .map((json) => RaceInfo.fromJson(json))
-          .toList();
-          
+      // JSON List -> List<RaceInfo>
+      final List<dynamic> data = response.data ?? [];
+      return data.map((json) => RaceInfo.fromJson(json)).toList();
+      
     } on DioException catch (e) {
-      // (v2).txt 3.3 - 오류 처리 로직
-      print("Error getting races: $e");
-      // 사용자에게 보여줄 오류 메시지 반환 또는 예외 발생
-      throw Exception('Failed to load races: $e');
+      // (v4) 1.1. API 오류 처리 (예시)
+      _handleDioError(e, 'Failed to load races');
+      return []; // 빈 리스트 반환
     }
   }
 
-  // (v2).txt 3.3 - getDrivers 함수
+  /// (v4) 3.3. API: GET /api/drivers/{year}/{race_id}
   Future<List<DriverInfo>> getDrivers(int year, String raceId) async {
     try {
       final response = await _dio.get('/api/drivers/$year/$raceId');
       
-      return (response.data as List)
-          .map((json) => DriverInfo.fromJson(json))
-          .toList();
+      // JSON List -> List<DriverInfo>
+      final List<dynamic> data = response.data ?? [];
+      return data.map((json) => DriverInfo.fromJson(json)).toList();
 
     } on DioException catch (e) {
-      print("Error getting drivers: $e");
-      throw Exception('Failed to load drivers: $e');
+      _handleDioError(e, 'Failed to load drivers');
+      return [];
     }
   }
 
-  // (v2).txt 3.3 - runSimulation 함수
-  Future<SimulationResponse> runSimulation(SimulationRequest request) async {
+  /// (v4) 3.3. API: POST /api/simulate
+  Future<SimulationResponse?> runSimulation(SimulationRequest request) async {
     try {
-      // (v2).txt 3.3 - Request Body 직렬화 (request.toJson() 사용)
+      // (v4) 3.3. Request Body 직렬화
       final response = await _dio.post(
         '/api/simulate',
         data: request.toJson(),
       );
       
-      // (v2).txt 3.3 - SimulationResponse 반환
+      // JSON Map -> SimulationResponse
       return SimulationResponse.fromJson(response.data);
 
     } on DioException catch (e) {
-      print("Error running simulation: $e");
-      // (v2).txt 1.3 - 오류 응답 본문 처리
-      if (e.response?.data != null && e.response?.data['detail'] != null) {
-         throw Exception('Simulation failed: ${e.response!.data['detail']}');
-      }
-      throw Exception('Failed to run simulation: $e');
+      _handleDioError(e, 'Simulation failed');
+      return null;
+    }
+  }
+
+  /// 공통 Dio 오류 처리
+  void _handleDioError(DioException e, String message) {
+    // 실제 앱에서는 이 부분에서 사용자에게 Snackbar나 AlertDialog를 표시합니다.
+    // (v4) 1.1. API 오류 발생 시 사용자 알림
+    if (e.response != null) {
+      debugPrint('$message: ${e.response?.statusCode} - ${e.response?.data}');
+    } else {
+      debugPrint('$message: ${e.message}');
     }
   }
 }

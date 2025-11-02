@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from core.cache import setup_fastf1_cache, clear_fastf1_cache
+from routers import data, simulation
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +30,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- 라우터 포함 (이미지 내용 적용) ---
+app.include_router(data.router)
+app.include_router(simulation.router)
+# ---------------------------------
 
 # --- 앱 시작/종료 이벤트 ---
 
@@ -68,4 +74,3 @@ async def read_root():
     """
     return {"message": "F1 Strategy Simulator (v4) Backend - Hello World"}
 
-# (향후 여기에 routers/simulation.py, routers/data.py 등을 include할 예정)

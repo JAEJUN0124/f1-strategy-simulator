@@ -1,37 +1,44 @@
-# backend/routers/simulation.py
+import uuid
+from fastapi import APIRouter, HTTPException
+from models.simulation import SimulationRequest, SimulationResponse, StrategyResult, RaceEvent
 
-from fastapi import APIRouter
-# 1. 이전 단계에서 만든 모델 임포트
-from models.schemas import SimulationRequest, SimulationResponse, StrategyResult, Results
-import uuid # reportId 생성을 위해 임포트
-
-# APIRouter 인스턴스 생성
 router = APIRouter()
 
-# (v2).txt 1.3 - POST /api/simulate
 @router.post("/api/simulate", response_model=SimulationResponse)
 async def run_simulation(request: SimulationRequest):
-    # Phase 2에서 실제 시뮬레이션 로직으로 대체됩니다.
-    # 지금은 가짜(mock) 응답을 반환합니다.
-    print(f"Received simulation request for: {request.driverId} in {request.year} {request.raceId}")
-
-    # 가짜 StrategyResult 생성
-    mock_strategy = StrategyResult(
-        name="Mock Result",
-        totalTime=5000.0,
-        pitLaps=[15, 30],
-        lapTimes=[1.5] * 50 # 50개의 랩타임 예시
-    )
-
-    # 가짜 Results 생성
-    mock_results = Results(
-        actual=mock_strategy,
-        optimal=mock_strategy,
-        scenarios=[mock_strategy]
+    """ (v4) 1.3. 시뮬레이션 요청 처리 및 결과 반환 (임시 데이터) """
+    
+    # 임시 'Actual' (실제) 결과
+    actual_result = StrategyResult(
+        name="Actual",
+        totalTime=5430.123,
+        pitLaps=[18, 35],
+        lapTimes=[95.1, 95.2, 95.3] * 19 # (단순화된 랩 타임)
     )
     
-    # 최종 응답 반환
-    return SimulationResponse(
-        reportId=str(uuid.uuid4()), # 고유 ID 생성
-        results=mock_results
+    # 임시 'Optimal' (최적) 결과
+    optimal_result = StrategyResult(
+        name="Optimal",
+        totalTime=5420.456,
+        pitLaps=[20, 38],
+        lapTimes=[94.8, 94.9, 95.0] * 19
     )
+
+    # (v4) 신규: 임시 레이스 이벤트
+    events = [
+        RaceEvent(type="SC", startLap=5, endLap=8),
+        RaceEvent(type="VSC", startLap=22, endLap=23),
+    ]
+
+    # 임시 응답 생성
+    response = SimulationResponse(
+        reportId=str(uuid.uuid4()),
+        results={
+            "actual": actual_result,
+            "optimal": optimal_result,
+            "scenarios": [optimal_result] # 요청받은 시나리오 대신 임시로 최적값을 반환
+        },
+        raceEvents=events
+    )
+    
+    return response
