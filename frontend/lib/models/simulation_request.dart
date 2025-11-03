@@ -1,5 +1,3 @@
-// frontend/lib/models/simulation_request.dart
-
 // API 요청 시 사용할 모델 (JSON 직렬화)
 
 class StintRequest {

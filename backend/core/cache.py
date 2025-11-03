@@ -4,14 +4,13 @@ import logging
 from pathlib import Path
 
 # 캐시 디렉토리 설정 (예: 프로젝트 루트의 .cache/fastf1)
-# 무료 서버 환경에서는 이 경로를 /tmp 또는 사용 가능한 영구 스토리지로 변경해야 할 수 있습니다.
+# 무료 서버 환경에서는 이 경로를 /tmp 또는 사용 가능한 영구 스토리지로 변경해야 할 수 있음
 CACHE_DIR = Path(os.getcwd()).parent / ".cache" / "fastf1"
 CACHE_LIMIT_GB = 4  # 4GB 용량 제한
 
 def setup_fastf1_cache():
     """
-    FastF1 캐시를 활성화하고 용량 제한을 설정합니다.
-    (v4) 1.2 항목 
+    FastF1 캐시를 활성화하고 용량 제한을 설정
     """
     try:
         if not CACHE_DIR.exists():
@@ -27,7 +26,7 @@ def setup_fastf1_cache():
 
 def clear_fastf1_cache():
     """
-    FastF1 캐시를 정리합니다 (LRU 정책에 따라).
+    FastF1 캐시를 정리 (LRU 정책에 따라).
     """
     try:
         logging.info("FastF1 캐시 정리 스케줄러 시작...")

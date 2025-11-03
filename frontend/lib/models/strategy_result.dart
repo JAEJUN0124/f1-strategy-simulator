@@ -1,5 +1,3 @@
-// frontend/lib/models/strategy_result.dart
-
 class StrategyResult {
   final String name;
   final double totalTime;

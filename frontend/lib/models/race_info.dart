@@ -1,5 +1,3 @@
-// frontend/lib/models/race_info.dart
-
 class RaceInfo {
   final String raceId;
   final String name;
@@ -11,7 +9,7 @@ class RaceInfo {
     required this.round,
   });
 
-  // (v4) 3.2. JSON 파싱을 위한 fromJson 팩토리 생성자
+  // JSON 파싱을 위한 fromJson 팩토리 생성자
   factory RaceInfo.fromJson(Map<String, dynamic> json) {
     return RaceInfo(
       raceId: json['raceId'] ?? '',

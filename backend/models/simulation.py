@@ -1,5 +1,3 @@
-# backend/models/simulation.py
-
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -56,4 +54,4 @@ class SimulationResponse(BaseModel):
     """ (v4) 1.3. API: POST /api/simulate 응답 본문 """
     reportId: str # UUID
     results: dict[str, StrategyResult | List[StrategyResult]] # {"actual": ..., "optimal": ..., "scenarios": [...]}
-    raceEvents: List[RaceEvent] # (v4) 신규 추가 [cite: 389]
+    raceEvents: List[RaceEvent] # [cite: 389]

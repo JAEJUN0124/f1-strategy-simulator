@@ -1,6 +1,3 @@
-// frontend/lib/models/race_event.dart
-
-// (v4) 3.2. RaceEvent Dart 클래스 [cite: 420]
 class RaceEvent {
   final String type; // 'SC', 'VSC', 'RedFlag'
   final int startLap;

@@ -24,7 +24,7 @@ async def run_simulation(request: SimulationRequest):
         lapTimes=[94.8, 94.9, 95.0] * 19
     )
 
-    # (v4) 신규: 임시 레이스 이벤트
+    # 임시 레이스 이벤트
     events = [
         RaceEvent(type="SC", startLap=5, endLap=8),
         RaceEvent(type="VSC", startLap=22, endLap=23),

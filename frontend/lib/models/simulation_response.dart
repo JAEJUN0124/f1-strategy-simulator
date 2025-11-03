@@ -1,5 +1,3 @@
-// frontend/lib/models/simulation_response.dart
-
 import 'race_event.dart';
 import 'strategy_result.dart';
 
@@ -8,7 +6,7 @@ class SimulationResponse {
   final StrategyResult actual;
   final StrategyResult optimal;
   final List<StrategyResult> scenarios;
-  final List<RaceEvent> raceEvents; // (v4) 신규 
+  final List<RaceEvent> raceEvents; 
 
   SimulationResponse({
     required this.reportId,
