@@ -8,11 +8,11 @@ import '../models/simulation_response.dart';
 class ApiService {
   late final Dio _dio;
 
-  // (v4) 3.3. Dio 클라이언트 초기화
+  // Dio 클라이언트 초기화
   ApiService() {
     _dio = Dio(
       BaseOptions(
-        // (v4) 1.3. FastAPI 기본 URL
+        // FastAPI 기본 URL
         baseUrl: 'http://127.0.0.1:8000', 
         connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 30),
@@ -23,7 +23,7 @@ class ApiService {
     _dio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
   }
 
-  /// (v4) 3.3. API: GET /api/races/{year}
+  /// API: GET /api/races/{year}
   Future<List<RaceInfo>> getRaces(int year) async {
     try {
       final response = await _dio.get('/api/races/$year');
@@ -33,13 +33,13 @@ class ApiService {
       return data.map((json) => RaceInfo.fromJson(json)).toList();
       
     } on DioException catch (e) {
-      // (v4) 1.1. API 오류 처리 (예시)
+      // API 오류 처리 (예시)
       _handleDioError(e, 'Failed to load races');
       return []; // 빈 리스트 반환
     }
   }
 
-  /// (v4) 3.3. API: GET /api/drivers/{year}/{race_id}
+  /// API: GET /api/drivers/{year}/{race_id}
   Future<List<DriverInfo>> getDrivers(int year, String raceId) async {
     try {
       final response = await _dio.get('/api/drivers/$year/$raceId');
@@ -54,10 +54,10 @@ class ApiService {
     }
   }
 
-  /// (v4) 3.3. API: POST /api/simulate
+  /// API: POST /api/simulate
   Future<SimulationResponse?> runSimulation(SimulationRequest request) async {
     try {
-      // (v4) 3.3. Request Body 직렬화
+      // Request Body 직렬화
       final response = await _dio.post(
         '/api/simulate',
         data: request.toJson(),
