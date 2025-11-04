@@ -14,7 +14,7 @@ app = FastAPI()
 scheduler = AsyncIOScheduler()
 
 # --- CORS 설정 ---
-# (v4) 1.3 항목 
+# 항목 
 # 로컬 개발 환경(Flutter Web/App)에서의 접근을 허용합니다.
 origins = [
     "http://localhost",
