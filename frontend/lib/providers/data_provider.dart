@@ -1,29 +1,41 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/race_info.dart';
-import '../models/driver_info.dart';
-import 'api_provider.dart'; // 1. apiServiceProvider 임포트
+// frontend/lib/providers/data_providers.dart
 
-// 연도별 레이스 목록을 비동기로 로딩합니다.
-// .autoDispose를 사용하여 필요 없을 때 메모리에서 자동으로 제거합니다.
-final racesProvider = FutureProvider.autoDispose.family<List<RaceInfo>, int>((ref, year) async {
-  // 2. apiServiceProvider를 읽어와 getRaces 함수 호출
+import '../models/driver_info.dart';
+import '../models/race_info.dart';
+import '../providers/api_service_provider.dart';
+import '../providers/simulator_config_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// (v4) 3.4. 연도별 레이스 목록을 가져오는 FutureProvider
+final racesProvider = FutureProvider<List<RaceInfo>>((ref) async {
+  // 1. ApiService를 가져옵니다.
   final apiService = ref.watch(apiServiceProvider);
-  return apiService.getRaces(year);
+  
+  // 2. 'simulatorConfigProvider'에서 현재 선택된 '연도'를 감시(watch)합니다.
+  final selectedYear = ref.watch(
+    simulatorConfigProvider.select((config) => config.selectedYear)
+  );
+
+  // 3. '연도'가 변경되면 apiService.getRaces가 다시 호출됩니다.
+  return apiService.getRaces(selectedYear);
 });
 
-// 특정 레이스의 드라이버 목록을 비동기로 로딩합니다.
-// family에 여러 파라미터를 전달하기 위해 Map 또는 별도 클래스를 사용할 수 있습니다.
-// 여기서는 간단하게 Map을 사용합니다.
-final driversProvider = FutureProvider.autoDispose.family<List<DriverInfo>, Map<String, dynamic>>(
-  (ref, params) async {
-    final int year = params['year'];
-    final String raceId = params['raceId'];
-    
-    // 3. apiServiceProvider를 읽어와 getDrivers 함수 호출
-    final apiService = ref.watch(apiServiceProvider);
-    return apiService.getDrivers(year, raceId);
-  },
-);
 
-// 시뮬레이션 결과 상태 관리 (simulationResultProvider)
-// 이 Provider들은 실제 화면(SimulatorScreen)을 구현할 때 이어서 만들겠습니다.
+/// (v4) 3.4. 특정 레이스의 드라이버 목록을 가져오는 FutureProvider
+final driversProvider = FutureProvider<List<DriverInfo>>((ref) async {
+  // 1. ApiService를 가져옵니다.
+  final apiService = ref.watch(apiServiceProvider);
+
+  // 2. 'simulatorConfigProvider'에서 연도와 레이스 ID를 감시(watch)합니다.
+  final config = ref.watch(simulatorConfigProvider);
+  final selectedYear = config.selectedYear;
+  final selectedRaceId = config.selectedRaceId;
+
+  // 3. 만약 레이스가 아직 선택되지 않았다면(null), 빈 목록을 반환합니다.
+  if (selectedRaceId == null) {
+    return [];
+  }
+
+  // 4. '레이스 ID'가 변경되면 apiService.getDrivers가 다시 호출됩니다.
+  return apiService.getDrivers(selectedYear, selectedRaceId);
+});
