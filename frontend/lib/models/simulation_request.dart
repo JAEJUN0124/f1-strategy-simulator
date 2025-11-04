@@ -18,6 +18,19 @@ class StintRequest {
       'endLap': endLap,
     };
   }
+
+  // 상태 관리를 위한 copyWith 추가
+  StintRequest copyWith({
+    String? compound,
+    int? startLap,
+    int? endLap,
+  }) {
+    return StintRequest(
+      compound: compound ?? this.compound,
+      startLap: startLap ?? this.startLap,
+      endLap: endLap ?? this.endLap,
+    );
+  }
 }
 
 class Scenario {
@@ -31,6 +44,17 @@ class Scenario {
       'name': name,
       'stints': stints.map((e) => e.toJson()).toList(),
     };
+  }
+
+  // 상태 관리를 위한 copyWith 추가
+  Scenario copyWith({
+    String? name,
+    List<StintRequest>? stints,
+  }) {
+    return Scenario(
+      name: name ?? this.name,
+      stints: stints ?? this.stints,
+    );
   }
 }
 
