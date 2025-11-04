@@ -1,5 +1,3 @@
-// frontend/lib/providers/api_service_provider.dart
-
 import '../services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

@@ -1,11 +1,9 @@
-// frontend/lib/main.dart
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. import 추가
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
   runApp(
-    // 2. ProviderScope로 앱 전체를 감쌉니다. 
+    // 2. ProviderScope로 앱 전체를 감쌈? 감싸다?
     const ProviderScope(
       child: MyApp(),
     ),
@@ -28,7 +26,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// TODO: 임시 MyHomePage. 나중에 screens/dashboard/dashboard_screen.dart로 대체합니다.
+// TODO: 임시 MyHomePage. 나중에 screens/dashboard/dashboard_screen.dart로 대체
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
 

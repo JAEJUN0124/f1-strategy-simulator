@@ -22,7 +22,7 @@ class SimulationResponse {
     return SimulationResponse(
       reportId: json['reportId'] ?? '',
       
-      // 'results' 맵 내부의 각 항목을 파싱합니다.
+      // 'results' 맵 내부의 각 항목을 파싱
       actual: StrategyResult.fromJson(results['actual'] ?? {}),
       optimal: StrategyResult.fromJson(results['optimal'] ?? {}),
       
@@ -30,7 +30,7 @@ class SimulationResponse {
           .map((e) => StrategyResult.fromJson(e as Map<String, dynamic>))
           .toList(),
           
-      // (v4) 레이스 이벤트 목록 파싱 
+      // 레이스 이벤트 목록 파싱 
       raceEvents: (json['raceEvents'] as List<dynamic>? ?? [])
           .map((e) => RaceEvent.fromJson(e as Map<String, dynamic>))
           .toList(),

@@ -75,7 +75,7 @@ class ApiService {
   /// 공통 Dio 오류 처리
   void _handleDioError(DioException e, String message) {
     // 실제 앱에서는 이 부분에서 사용자에게 Snackbar나 AlertDialog를 표시합니다.
-    // (v4) 1.1. API 오류 발생 시 사용자 알림
+    // API 오류 발생 시 사용자 알림
     if (e.response != null) {
       debugPrint('$message: ${e.response?.statusCode} - ${e.response?.data}');
     } else {

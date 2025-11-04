@@ -1,5 +1,3 @@
-// frontend/lib/models/simulator_config_state.dart
-
 import 'package:flutter/foundation.dart';
 
 @immutable

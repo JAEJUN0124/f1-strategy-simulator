@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/legacy.dart';
 import '../models/simulator_config_state.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 사용자의 시뮬레이터 옵션 선택 상태를 관리하는 Notifier
 class SimulatorConfigNotifier extends StateNotifier<SimulatorConfigState> {
@@ -26,7 +25,7 @@ class SimulatorConfigNotifier extends StateNotifier<SimulatorConfigState> {
   }
 }
 
-/// (v4) 3.4. 시뮬레이터 설정 상태 Provider
+/// 시뮬레이터 설정 상태 Provider
 final simulatorConfigProvider =
     StateNotifierProvider<SimulatorConfigNotifier, SimulatorConfigState>((ref) {
   return SimulatorConfigNotifier();
