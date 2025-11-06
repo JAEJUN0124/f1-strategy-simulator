@@ -8,6 +8,8 @@ import 'package:frontend/providers/strategy_provider.dart';
 import 'package:frontend/widgets/strategy_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/providers/simulation_result_provider.dart';
+import 'package:frontend/screens/analysis/analysis_screen.dart';
 
 class SimulatorScreen extends ConsumerWidget {
   const SimulatorScreen({super.key});
@@ -29,11 +31,11 @@ class SimulatorScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('F1 Strategy Simulator'),
       ),
-      // (수정) 스크롤 가능하도록 ListView로 변경
+      // 스크롤 가능하도록 ListView로 변경
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // --- 1. 연도 선택 (이전과 동일) ---
+          // --- 1. 연도 선택 ---
           DropdownButtonFormField<int>(
             initialValue: config.selectedYear,
             decoration: const InputDecoration(labelText: 'Year'),
@@ -51,7 +53,7 @@ class SimulatorScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // --- 2. 그랑프리 선택 (이전과 동일) ---
+          // --- 2. 그랑프리 선택 ---
           races.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => Text('Error: $err'),
@@ -77,7 +79,7 @@ class SimulatorScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // --- 3. 드라이버 선택 (이전과 동일) ---
+          // --- 3. 드라이버 선택 ---
           drivers.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => Text('Error: $err'),
@@ -113,7 +115,7 @@ class SimulatorScreen extends ConsumerWidget {
           ),
           const Divider(height: 32),
 
-          // --- 4. 전략 시나리오 목록 (신규) ---
+          // --- 4. 전략 시나리오 목록 ---
           // StrategyCard 목록
           ...scenarios.asMap().entries.map((entry) {
             int index = entry.key;
@@ -124,7 +126,7 @@ class SimulatorScreen extends ConsumerWidget {
             );
           }),
 
-          // --- 5. 시나리오 추가 버튼 (신규) ---
+          // --- 5. 시나리오 추가 버튼 ---
           OutlinedButton.icon(
             icon: const Icon(Icons.add_chart),
             label: const Text('Add Strategy Scenario'),
@@ -141,8 +143,7 @@ class SimulatorScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          // --- 6. 시뮬레이션 실행 버튼 (신규) ---
-          // 시뮬레이션 실행 버튼
+          // --- 6. 시뮬레이션 실행 버튼 ---
           ElevatedButton.icon(
             icon: const Icon(Icons.play_arrow),
             label: const Text('Run Simulation'),
@@ -181,10 +182,17 @@ class SimulatorScreen extends ConsumerWidget {
 
                     // 4. 결과 처리 (임시)
                     if (response != null) {
-                      // 결과 수신 시 AnalysisScreen으로 이동 (다음 단계에서 구현)
-                      debugPrint('Simulation Success: ${response.reportId}');
-                      // TODO: ref.read(simulationResultProvider.notifier).state = response;
-                      // TODO: Navigator.push(context, ... AnalysisScreen ...);
+                      //  결과 수신 시
+                      // 1. Provider에 결과 저장
+                      ref.read(simulationResultProvider.notifier).state = response;
+
+                      // 2. AnalysisScreen으로 이동
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AnalysisScreen(),
+                        ),
+                      );
                     } else {
                       // API 오류 알림
                       ScaffoldMessenger.of(context).showSnackBar(
