@@ -14,8 +14,13 @@ class ApiService {
       BaseOptions(
         // FastAPI 기본 URL
         baseUrl: 'http://127.0.0.1:8000', 
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 30),
+        
+        // --- 수정된 부분 ---
+        // 5초 -> 120초 (2분)로 대폭 늘림
+        connectTimeout: const Duration(seconds: 120), 
+        // 받는 시간도 120초로 늘림
+        receiveTimeout: const Duration(seconds: 120), 
+        // ------------------
       ),
     );
     
@@ -35,7 +40,7 @@ class ApiService {
     } on DioException catch (e) {
       // API 오류 처리 (예시)
       _handleDioError(e, 'Failed to load races');
-      return []; // 빈 리스트 반환
+      throw Exception('Failed to load races: ${e.response?.data ?? e.message}');
     }
   }
 
@@ -50,7 +55,7 @@ class ApiService {
 
     } on DioException catch (e) {
       _handleDioError(e, 'Failed to load drivers');
-      return [];
+      throw Exception('Failed to load drivers: ${e.response?.data ?? e.message}');
     }
   }
 
