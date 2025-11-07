@@ -86,7 +86,7 @@ def model_tire_degradation(driver_laps: pd.DataFrame) -> Dict[str, float]:
 
     return degradation_models
 
-# --- 3. (v4) 2.2. 레이스 이벤트 추출 ---
+# --- 3. 레이스 이벤트 추출 ---
 
 def get_race_events(session) -> List[RaceEvent]:
     """ SC, VSC, Red Flag 이벤트를 추출합니다. """
@@ -178,7 +178,7 @@ def _simulate_strategy(
     current_stint_index = 0
     tire_life = 0
     
-    # (v4) 3.5. 수동 랩 지정을 위한 임시 endLap 설정 (시나리오에 스틴트가 1개면 마지막 랩)
+    # 수동 랩 지정을 위한 임시 endLap 설정 (시나리오에 스틴트가 1개면 마지막 랩)
     if len(scenario.stints) == 1:
         scenario.stints[0].endLap = total_laps
 
@@ -196,7 +196,7 @@ def _simulate_strategy(
         degradation = degradation_model.get(compound, 0.1) * tire_life
         lap_time = base_lap_time + degradation
         
-        # (v4) 3.5. 임시 피트 스톱 로직 (endLap이 현재 랩과 같고 마지막 랩이 아닐 때)
+        # 임시 피트 스톱 로직 (endLap이 현재 랩과 같고 마지막 랩이 아닐 때)
         # (프론트에서 endLap이 null로 오므로, 여기서는 임시로 2스탑 (total/3)으로 가정)
         # TODO: 프론트에서 startLap/endLap을 입력받아 이 로직을 대체해야 함
         
