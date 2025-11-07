@@ -1,44 +1,24 @@
-import uuid
+import logging
 from fastapi import APIRouter, HTTPException
-from models.simulation import SimulationRequest, SimulationResponse, StrategyResult, RaceEvent
+from models.simulation import SimulationRequest, SimulationResponse
+from services import simulation_service
 
 router = APIRouter()
 
+
 @router.post("/api/simulate", response_model=SimulationResponse)
 async def run_simulation(request: SimulationRequest):
-    """ (v4) 1.3. 시뮬레이션 요청 처리 및 결과 반환 (임시 데이터) """
-    
-    # 임시 'Actual' (실제) 결과
-    actual_result = StrategyResult(
-        name="Actual",
-        totalTime=5430.123,
-        pitLaps=[18, 35],
-        lapTimes=[95.1, 95.2, 95.3] * 19 # (단순화된 랩 타임)
-    )
-    
-    # 임시 'Optimal' (최적) 결과
-    optimal_result = StrategyResult(
-        name="Optimal",
-        totalTime=5420.456,
-        pitLaps=[20, 38],
-        lapTimes=[94.8, 94.9, 95.0] * 19
-    )
+    """ simulation_service를 호출하여 실제 시뮬레이션 결과 반환 """
 
-    # 임시 레이스 이벤트
-    events = [
-        RaceEvent(type="SC", startLap=5, endLap=8),
-        RaceEvent(type="VSC", startLap=22, endLap=23),
-    ]
+    try:
+        # 메인 서비스 함수 호출
+        response = simulation_service.run_simulation(request)
+        return response
 
-    # 임시 응답 생성
-    response = SimulationResponse(
-        reportId=str(uuid.uuid4()),
-        results={
-            "actual": actual_result,
-            "optimal": optimal_result,
-            "scenarios": [optimal_result] # 요청받은 시나리오 대신 임시로 최적값을 반환
-        },
-        raceEvents=events
-    )
-    
-    return response
+    except HTTPException as e:
+        # 서비스에서 발생한 HTTP 예외는 그대로 전달
+        raise e
+    except Exception as e:
+        # 그 외 서버 오류
+        logging.error(f"시뮬레이션 중 알 수 없는 오류 발생: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
