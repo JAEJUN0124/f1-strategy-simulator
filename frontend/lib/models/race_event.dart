@@ -16,4 +16,13 @@ class RaceEvent {
       endLap: json['endLap'] ?? 0,
     );
   }
+
+  // 로컬 저장을 위한 toJson 메서드
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      'startLap': startLap,
+      'endLap': endLap,
+    };
+  }
 }

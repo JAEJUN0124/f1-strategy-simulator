@@ -36,4 +36,17 @@ class SimulationResponse {
           .toList(),
     );
   }
+
+  // 로컬 저장을 위한 toJson 메서드
+  Map<String, dynamic> toJson() {
+    return {
+      'reportId': reportId,
+      'results': {
+        'actual': actual.toJson(),
+        'optimal': optimal.toJson(),
+        'scenarios': scenarios.map((e) => e.toJson()).toList(),
+      },
+      'raceEvents': raceEvents.map((e) => e.toJson()).toList(),
+    };
+  }
 }

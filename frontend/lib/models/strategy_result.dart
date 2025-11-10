@@ -20,4 +20,14 @@ class StrategyResult {
           (json['lapTimes'] ?? []).map((e) => e.toDouble())),
     );
   }
+
+  // 로컬 저장을 위한 toJson 메서드
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'totalTime': totalTime,
+      'pitLaps': pitLaps,
+      'lapTimes': lapTimes,
+    };
+  }
 }
