@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/screens/simulator/simulator_screen.dart';
+import 'package:frontend/screens/dashboard/dashboard_screen.dart'; 
 import 'package:frontend/services/local_storage_service.dart';
 
 // main 함수를 async로 변경
@@ -31,27 +31,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'F1 Strategy Simulator',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        // (수정) 테마 색상 변경
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent), 
         useMaterial3: true,
       ),
-      home: const SimulatorScreen(),
-    );
-  }
-}
-
-// TODO: 임시 MyHomePage. 나중에 screens/dashboard/dashboard_screen.dart로 대체
-class MyHomePage extends StatelessWidget {
-  const MyHomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('F1 Simulator'),
-      ),
-      body: const Center(
-        child: Text('환경 설정 완료'),
-      ),
+      // 시작 화면을 DashboardScreen으로 변경
+      home: const DashboardScreen(), 
     );
   }
 }
