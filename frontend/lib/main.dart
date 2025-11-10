@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/screens/dashboard/dashboard_screen.dart'; 
+import 'package:frontend/screens/main_screen.dart';
 import 'package:frontend/services/local_storage_service.dart';
 
 // main 함수를 async로 변경
@@ -35,8 +35,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent), 
         useMaterial3: true,
       ),
-      // 시작 화면을 DashboardScreen으로 변경
-      home: const DashboardScreen(), 
+      // 시작 화면을 MainScreen으로 변경
+      home: MainScreen(), 
     );
   }
 }

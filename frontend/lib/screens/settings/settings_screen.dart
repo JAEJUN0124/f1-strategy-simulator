@@ -52,29 +52,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // 피트 스톱 시간 입력
-          TextFormField(
-            controller: _controller,
-            decoration: const InputDecoration(
-              labelText: 'Pit Stop Loss (seconds)',
-              helperText: 'e.g., 23.5',
-            ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    // (수정) Scaffold와 AppBar 제거
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        // 피트 스톱 시간 입력
+        TextFormField(
+          controller: _controller,
+          decoration: const InputDecoration(
+            labelText: 'Pit Stop Loss (seconds)',
+            helperText: 'e.g., 23.5',
           ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _saveSettings,
-            child: const Text('Save Settings'),
-          ),
-        ],
-      ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: _saveSettings,
+          child: const Text('Save Settings'),
+        ),
+      ],
     );
   }
 }
