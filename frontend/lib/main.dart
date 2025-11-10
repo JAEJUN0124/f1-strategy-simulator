@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/screens/simulator/simulator_screen.dart';
+import 'package:frontend/services/local_storage_service.dart';
 
-void main() {
+// main 함수를 async로 변경
+Future<void> main() async {
+  
+  // Flutter 바인딩 초기화 (async main 실행 시 필수)
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // SharedPreferences를 로드하여 LocalStorageService 인스턴스 생성
+  final localStorage = await LocalStorageService.create();
+
   runApp(
-    // 2. ProviderScope로 앱 전체를 감쌈? 감싸다?
-    const ProviderScope(
-      child: MyApp(),
+    // ProviderScope에 생성된 서비스 인스턴스를 주입(override)
+    ProviderScope(
+      overrides: [
+        localStorageServiceProvider.overrideWithValue(localStorage),
+      ],
+      child: const MyApp(),
     ),
   );
 }

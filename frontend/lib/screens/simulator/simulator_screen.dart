@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/providers/simulation_result_provider.dart';
 import 'package:frontend/screens/analysis/analysis_screen.dart';
 import 'package:frontend/providers/settings_provider.dart'; 
+import 'package:frontend/providers/recent_reports_provider.dart';
 
 class SimulatorScreen extends ConsumerWidget {
   const SimulatorScreen({super.key});
@@ -191,9 +192,8 @@ class SimulatorScreen extends ConsumerWidget {
                       // 1. Provider에 결과 저장
                       ref.read(simulationResultProvider.notifier).state = response;
                       
-                      // (추가) 결과 수신 시 로컬에 저장
-                      // (다음 단계에서 구현할 Provider 호출)
-                      // ref.read(recentReportsProvider.notifier).addReport(response);
+                      // 결과 수신 시 로컬에 저장
+                      ref.read(recentReportsProvider.notifier).addReport(response);
 
                       // 2. AnalysisScreen으로 이동
                       Navigator.push(
