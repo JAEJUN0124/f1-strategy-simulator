@@ -15,3 +15,8 @@ F1 레이스 데이터를 기반으로 다양한 타이어 전략을 시뮬레�
 ## 🧑‍💻 개발자
 - **[202330233] [황재준]**
 
+## API Documentation
+
+전체 API 문서는 아래 링크에서 확인하세요.
+
+[**API 문서 PDF 파일 보기 (FastAPI - ReDoc.pdf)**](https://github.com/user-attachments/files/23483576/FastAPI.-.ReDoc.pdf)
