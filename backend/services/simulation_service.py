@@ -12,7 +12,7 @@ from fastapi import HTTPException
 # --- 1. 실제 전략 분석 ---
 
 def get_actual_strategy(driver_laps: pd.DataFrame) -> StrategyResult:
-    """ (v4) 2.2. 드라이버의 실제 레이스 전략을 분석합니다. """
+    """ 드라이버의 실제 레이스 전략을 분석합니다. """
     try:
         # 피트 스톱 랩 찾기 (PitOutTime이 기록된 랩)
         pit_laps = driver_laps[driver_laps['PitOutTime'].notna()]['LapNumber'].tolist()
@@ -44,7 +44,7 @@ def get_actual_strategy(driver_laps: pd.DataFrame) -> StrategyResult:
 
 def model_tire_degradation(driver_laps: pd.DataFrame) -> Dict[str, float]:
     """
-    (v4) 2.2. 타이어 컴파운드별 성능 저하(degradation)를 모델링합니다.
+    타이어 컴파운드별 성능 저하(degradation)를 모델링합니다.
     """
     degradation_models = {}
     

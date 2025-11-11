@@ -8,7 +8,7 @@ router = APIRouter()
 
 @router.get("/api/races/{year}", response_model=List[RaceInfo])
 async def get_races(year: int):
-    """ (v4) 2.3. (수정) data_service를 호출하여 실제 연도별 레이스 목록 반환 """
+    """ data_service를 호출하여 실제 연도별 레이스 목록 반환 """
     
     races = data_service.get_races_for_year(year)
     
@@ -18,7 +18,7 @@ async def get_races(year: int):
 
 @router.get("/api/drivers/{year}/{race_id}", response_model=List[DriverInfo])
 async def get_drivers(year: int, race_id: str):
-    """ (v4) 2.3. (수정) data_service를 호출하여 실제 드라이버 목록 반환 """
+    """ data_service를 호출하여 실제 드라이버 목록 반환 """
     
     drivers = data_service.get_drivers_for_race(year, race_id)
     

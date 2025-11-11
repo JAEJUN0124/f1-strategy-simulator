@@ -33,7 +33,7 @@ def load_race_data(year: int, race_id: str):
         logging.error(f"세션 로드 중 오류 발생: {e}", exc_info=True)
         return None
 
-# (v4) 2.1. 연도별 레이스 목록 (중복 제거됨)
+# 연도별 레이스 목록 (중복 제거됨)
 @lru_cache(maxsize=5)
 def get_races_for_year(year: int) -> List[RaceInfo]:
     """
@@ -80,7 +80,7 @@ def get_races_for_year(year: int) -> List[RaceInfo]:
         logging.error(f"{year}년 레이스 스케줄 로드 실패: {e}", exc_info=True)
         return []
 
-# (v4) 2.1. 레이스별 드라이버 목록
+# 레이스별 드라이버 목록
 @lru_cache(maxsize=20)
 def get_drivers_for_race(year: int, race_id: str) -> List[DriverInfo]:
     """
