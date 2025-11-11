@@ -14,14 +14,3 @@ F1 레이스 데이터를 기반으로 다양한 타이어 전략을 시뮬레�
 
 ## 🧑‍💻 개발자
 - **[202330233] [황재준]**
-
-## ⚙️ 실행 방법
-
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-## figma Slides
-[figma Slides](https://www.figma.com/deck/vgQnnDWOYT2OOQfy833qUU/%EA%B0%9C%EB%B0%9C-%EC%A0%9C%EC%95%88%EC%84%9C?node-id=29-23&t=Ke1phf7gOtASU7Us-1)
