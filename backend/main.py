@@ -1,13 +1,11 @@
 import logging
+import pytz
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-
-# --- 이 임포트가 오류의 원인이었습니다 ---
+from apscheduler.triggers.cron import CronTrigger
 from core.cache import setup_fast_f1_cache, clear_fast_f1_cache
 from routers import data, simulation
-# ------------------------------------
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -52,15 +50,14 @@ async def startup_event():
     setup_fast_f1_cache()
     
     # 2. 캐시 정리 스케줄러 (시간 제한)
-    # 24시간(86400초)마다 clear_fast_f1_cache 함수 실행
     scheduler.add_job(
         clear_fast_f1_cache,
-        trigger=IntervalTrigger(seconds=86400), # 24시간
+        trigger=CronTrigger(hour=4, minute=0, timezone=pytz.timezone('Asia/Seoul')),
         id="daily_cache_clear",
         replace_existing=True,
     )
     scheduler.start()
-    logging.info("APScheduler 시작됨. (24시간 캐시 정리)")
+    logging.info("APScheduler 시작됨. (매일 4시(KST) 캐시 정리)")
 
 @app.on_event("shutdown")
 async def shutdown_event():
