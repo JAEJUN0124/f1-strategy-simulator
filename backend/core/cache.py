@@ -29,7 +29,7 @@ def clear_fast_f1_cache():
     """
     try:
         logging.info("FastF1 캐시 정리 스케줄러 시작...")
-        # clear_cache에는 경로 인자가 필요 없습니다 (enable_cache에서 설정됨)
+        # clear_cache에는 경로 인자가 필요 없음 (enable_cache에서 설정됨)
         ff1.Cache.clear_cache()
         logging.info("FastF1 캐시 정리 완료.")
     except Exception as e:

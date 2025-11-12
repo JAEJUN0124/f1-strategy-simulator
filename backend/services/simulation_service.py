@@ -44,42 +44,56 @@ def get_actual_strategy(driver_laps: pd.DataFrame) -> StrategyResult:
 
 def model_tire_degradation(driver_laps: pd.DataFrame) -> Dict[str, float]:
     """
-    타이어 컴파운드별 성능 저하(degradation)를 모델링합니다.
+    타이어 컴파운드별 성능 저하(degradation)를 모델링
+    - (입력) driver_laps: UI에서 선택한 '특정 드라이버 1명'의 데이터
+    - (출력) degradation_models: {"COMPOUND": 랩당_저하값_초} (예: {"SOFT": 0.15})
     """
+    
     degradation_models = {}
     
-    # 이상치(SC, VSC, In/Out 랩) 제거
+    # [1] 모델링을 위한 데이터 정제: SC/VSC, Pit 랩 등 이상치(Noise) 제거
     laps_for_model = driver_laps[
-        (driver_laps['TrackStatus'] == '1') & # 트랙 상태 Green
+        (driver_laps['TrackStatus'] == '1') & # 트랙 상태 Green (SC/VSC 제외)
         (driver_laps['IsAccurate'] == True) & # 정확한 랩 타임
-        (driver_laps['PitInTime'].isna()) &
+        (driver_laps['PitInTime'].isna()) &   # 피트 스톱 랩 제외
         (driver_laps['PitOutTime'].isna())
     ].copy()
     
+    # [2] 'LapTime' (TimeDelta)을 'LapTimeSeconds' (float)로 변환
     laps_for_model['LapTimeSeconds'] = laps_for_model['LapTime'].dt.total_seconds()
     
+    # [3] 타이어 컴파운드별(Soft, Medium, Hard)로 반복
     compounds = laps_for_model['Compound'].unique()
     
     for compound in compounds:
         compound_laps = laps_for_model[laps_for_model['Compound'] == compound]
         
+        # [4] 통계적 의미를 위해 최소 5랩 이상의 데이터가 있는지 확인
         if len(compound_laps) < 5: # 데이터가 너무 적으면 모델링 스킵
             continue
             
         try:
+            # [5] 핵심: 선형 회귀(1차) 실행. X=타이어수명, Y=랩타임(초)
+            #       - np.polyfit(X, Y, 1) -> [기울기(β₁), Y절편(β₀)] 반환
             model = np.polyfit(compound_laps['TyreLife'], compound_laps['LapTimeSeconds'], 1)
+            
+            # [6] 모델 결과(기울기) 추출: model[0]은 기울기(β₁), 즉 '랩당 성능 저하 값'임.
             degradation_per_lap = model[0]
             
+            # [7] 보정: 모델이 비정상적인 값(예: 0 미만, 0.5초 초과)을 반환하면, 0.01로 고정
             if degradation_per_lap < 0 or degradation_per_lap > 0.5:
                  degradation_per_lap = 0.01 
                  
             degradation_models[compound] = degradation_per_lap
             
         except Exception as e:
+            # (예외 처리) 모델링 실패 시, 기본 저하 값(0.1) 할당
             logging.warning(f"{compound} 모델링 실패: {e}. 기본값(0.1) 사용.")
-            degradation_models[compound] = 0.1 # 실패 시 기본값
+            degradation_models[compound] = 0.1 
 
-    # 모델에 없는 타이어(예: WET)를 위한 기본값
+    # [8] 폴백(Fallback): 
+    #     - 데이터가 부족해 모델링이 안 된 컴파운드(예: 5랩 미만 주행)에 대해 
+    #     - 시뮬레이션이 멈추지 않도록 미리 정의된 기본값(Hardcoded)을 할당합니다.
     if "SOFT" not in degradation_models: degradation_models["SOFT"] = 0.15
     if "MEDIUM" not in degradation_models: degradation_models["MEDIUM"] = 0.1
     if "HARD" not in degradation_models: degradation_models["HARD"] = 0.08
