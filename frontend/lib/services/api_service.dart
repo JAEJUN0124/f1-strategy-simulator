@@ -10,10 +10,18 @@ class ApiService {
 
   // Dio 클라이언트 초기화
   ApiService() {
+    // 1. 플랫폼(웹/모바일)에 따라 다른 URL을 사용
+    const String androidBaseUrl = 'http://10.0.2.2:8000';
+    const String webBaseUrl = 'http://127.0.0.1:8000';
+
+    // 2. kIsWeb은 Flutter가 제공하는 '지금 웹 환경에서 실행 중인가?'를 확인하는 변수
+    // (kIsWeb은 'package:flutter/foundation.dart'에 포함되어 있음)
+    final String baseUrl = kIsWeb ? webBaseUrl : androidBaseUrl;
+
     _dio = Dio(
       BaseOptions(
         // FastAPI 기본 URL
-        baseUrl: 'http://127.0.0.1:8000', 
+        baseUrl: baseUrl, // 3. 결정된 baseUrl을 적용
         
         // --- 수정된 부분 ---
         // 5초 -> 120초 (2분)로 대폭 늘림

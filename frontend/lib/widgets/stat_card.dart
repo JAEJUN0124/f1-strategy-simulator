@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 /// '실제 vs 최적' 비교 등을 위한 공용 스탯 카드
 class StatCard extends StatelessWidget {
@@ -30,12 +31,14 @@ class StatCard extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 4),
-            Text(
+            AutoSizeText(
               value,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: color,
                   ),
+              maxLines: 1, // 1줄로 제한
+              minFontSize: 10, // 최소 글꼴 크기
             ),
           ],
         ),
