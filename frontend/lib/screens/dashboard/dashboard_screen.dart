@@ -17,8 +17,9 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // 로컬 저장소에서 최근 리포트 목록 로드
-    final List<SimulationResponse> recentReports =
-        ref.watch(recentReportsProvider);
+    final List<SimulationResponse> recentReports = ref.watch(
+      recentReportsProvider,
+    );
 
     // (추가) 시즌 캘린더 데이터 로드 (가장 최근 연도)
     // providers/simulator_config_provider.dart에서 기본값이 2024년이므로
@@ -50,8 +51,15 @@ class DashboardScreen extends ConsumerWidget {
                   final race = raceList[index];
                   // (날짜 포맷팅은 API 응답에 날짜가 없으므로 임시로 제외)
                   return Card(
-                    elevation: 1,
+                    // (수정) elevation 및 margin 변경
+                    elevation: 0, // CardTheme이 0으로 설정함
                     margin: const EdgeInsets.symmetric(vertical: 4.0),
+                    // (수정) 입력 부분이 아니므로 흰색 배경
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
                     child: ListTile(
                       title: Text(race.name),
                       subtitle: Text('라운드 ${race.round}'),
@@ -89,11 +97,17 @@ class DashboardScreen extends ConsumerWidget {
                     final totalTime = actual.totalTime;
 
                     return Card(
-                      elevation: 1,
+                      // (수정) elevation 및 margin 변경
+                      elevation: 0,
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
+                      // (수정) 입력 부분이 아니므로 흰색 배경
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: Colors.grey.shade200),
+                      ),
                       child: ListTile(
-                        title:
-                            Text('리포트: ${report.reportId.substring(0, 8)}'),
+                        title: Text('리포트: ${report.reportId.substring(0, 8)}'),
                         subtitle: Text(
                           '드라이버: $driverId / 기록: ${totalTime.toStringAsFixed(2)}초\n'
                           '저장일: ${DateFormat.yMd().add_jm().format(DateTime.now())}', // (참고: 이 시간은 저장된 시간이 아닌 '지금' 시간)

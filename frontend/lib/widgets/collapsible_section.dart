@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 class CollapsibleSection extends StatefulWidget {
   /// 섹션의 제목 (예: "시즌 캘린더")
   final String title;
+
   /// 섹션의 아이콘 (예: Icons.calendar_today_outlined)
   final IconData icon;
+
   /// 펼쳤을 때 보여줄 자식 위젯
   final Widget child;
+
   /// 초기 펼침 상태 (기본값: true)
   final bool initialIsExpanded;
 
@@ -43,8 +46,9 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      // (수정) CardTheme에서 elevation, shape을 관리함
+      // elevation: 1,
+      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias, // Card의 경계에 맞춰 자식 위젯을 자름
       child: Column(
         children: [
@@ -54,18 +58,15 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
             leading: Icon(widget.icon, color: Theme.of(context).primaryColor),
             title: Text(
               widget.title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             // 펼침/닫힘 상태에 따라 화살표 아이콘 변경
-            trailing: Icon(
-              _isExpanded ? Icons.expand_less : Icons.expand_more,
-            ),
+            trailing: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
             onTap: _toggleExpanded, // 탭하면 상태 변경
           ),
-          
+
           // 2. 컨텐츠 (펼쳐졌을 때만 보임)
           // AnimatedCrossFade를 사용하여 부드러운 애니메이션 효과 적용
           AnimatedCrossFade(

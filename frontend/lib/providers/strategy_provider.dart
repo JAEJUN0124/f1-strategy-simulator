@@ -19,6 +19,14 @@ class StrategyNotifier extends StateNotifier<List<Scenario>> {
     ];
   }
 
+  // (추가) 시나리오 이름 변경
+  void updateScenarioName(int scenarioIndex, String newName) {
+    if (scenarioIndex < 0 || scenarioIndex >= state.length) return;
+
+    final updatedScenario = state[scenarioIndex].copyWith(name: newName);
+    _updateScenario(scenarioIndex, updatedScenario);
+  }
+
   /// 스틴트 추가
   void addStint(int scenarioIndex, StintRequest stint) {
     if (scenarioIndex < 0 || scenarioIndex >= state.length) return;
@@ -53,6 +61,24 @@ class StrategyNotifier extends StateNotifier<List<Scenario>> {
     final updatedStints = [...scenario.stints];
     updatedStints[stintIndex] = updatedStint;
     
+    _updateScenario(scenarioIndex, scenario.copyWith(stints: updatedStints));
+  }
+
+  // (추가) 스틴트의 시작/종료 랩 변경
+  void updateStintLaps(int scenarioIndex, int stintIndex, {int? startLap, int? endLap}) {
+    if (scenarioIndex < 0 || scenarioIndex >= state.length) return;
+    final scenario = state[scenarioIndex];
+    if (stintIndex < 0 || stintIndex >= scenario.stints.length) return;
+
+    // copyWith을 사용하여 startLap과 endLap만 업데이트
+    final updatedStint = scenario.stints[stintIndex].copyWith(
+      startLap: startLap,
+      endLap: endLap,
+    );
+
+    final updatedStints = [...scenario.stints];
+    updatedStints[stintIndex] = updatedStint;
+
     _updateScenario(scenarioIndex, scenario.copyWith(stints: updatedStints));
   }
 
