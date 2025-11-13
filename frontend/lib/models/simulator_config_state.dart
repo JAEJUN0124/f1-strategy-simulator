@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class SimulatorConfigState {
   final int selectedYear;
   final String? selectedRaceId;
