@@ -19,4 +19,6 @@ F1 레이스 데이터를 기반으로 다양한 타이어 전략을 시뮬레�
 
 전체 API 문서는 아래 링크에서 확인하세요.
 
-[**API 문서 PDF 파일 보기 (FastAPI - ReDoc.pdf)**](https://github.com/user-attachments/files/23483576/FastAPI.-.ReDoc.pdf)
+[API 문서 바로보기 (Notion)](https://weak-rhinoceros-b64.notion.site/FastAPI-2aa2941fd857807c8950da646ff921d3?source=copy_link)
+
+[API 문서 PDF 파일 다운로드 (FastAPI - ReDoc.pdf)](https://github.com/user-attachments/files/23483576/FastAPI.-.ReDoc.pdf)
