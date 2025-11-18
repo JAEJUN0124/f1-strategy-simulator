@@ -11,6 +11,9 @@ class CollapsibleSection extends StatefulWidget {
   /// 펼쳤을 때 보여줄 자식 위젯
   final Widget child;
 
+  /// 접혔을 때 보여줄 미리보기 위젯 (상위 3개)
+  final Widget? previewChild;
+
   /// 초기 펼침 상태 (기본값: true)
   final bool initialIsExpanded;
 
@@ -19,6 +22,7 @@ class CollapsibleSection extends StatefulWidget {
     required this.title,
     required this.icon,
     required this.child,
+    this.previewChild,
     this.initialIsExpanded = true, // 기본적으로 펼쳐진 상태로 시작
   });
 
@@ -79,8 +83,13 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
               padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
               child: widget.child,
             ),
-            // 닫혔을 때의 위젯 (빈 컨테이너)
-            secondChild: Container(),
+            // (수정) 접혔을 때: 미리보기 내용 (previewChild) 또는 빈 컨테이너
+            secondChild: widget.previewChild != null
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                    child: widget.previewChild,
+                  )
+                : Container(),
           ),
         ],
       ),

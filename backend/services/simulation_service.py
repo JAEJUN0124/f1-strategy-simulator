@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from typing import List, Dict
 from models.simulation import (
-    SimulationRequest, SimulationResponse, StrategyResult, RaceEvent, Scenario
+    SimulationRequest, SimulationResponse, StrategyResult, RaceEvent, Scenario, TireStint
 )
 from services import data_service
 from fastapi import HTTPException
@@ -23,77 +23,94 @@ def get_actual_strategy(driver_laps: pd.DataFrame) -> StrategyResult:
         # 실제 총 레이스 시간
         total_time = sum(lap_times_data)
         
-        # --- 수정: Pydantic 모델(camelCase)에 맞게 반환 ---
+        # 실제 타이어 스틴트 분석 로직
+        tire_stints = []
+        current_compound = None
+        start_lap = 1
+        
+        # 데이터프레임을 순회하며 스틴트 추출
+        laps_with_compound = driver_laps[['LapNumber', 'Compound']].dropna()
+        
+        for _, row in laps_with_compound.iterrows():
+            lap = int(row['LapNumber'])
+            compound = row['Compound']
+            
+            if current_compound is None:
+                current_compound = compound
+                start_lap = lap
+            elif compound != current_compound:
+                # 타이어 변경 감지 -> 이전 스틴트 저장
+                tire_stints.append(TireStint(
+                    compound=str(current_compound),
+                    startLap=start_lap,
+                    endLap=lap - 1
+                ))
+                current_compound = compound
+                start_lap = lap
+        
+        # 마지막 스틴트 추가
+        if current_compound is not None:
+            max_lap = int(driver_laps['LapNumber'].max())
+            tire_stints.append(TireStint(
+                compound=str(current_compound),
+                startLap=start_lap,
+                endLap=max_lap
+            ))
+
         return StrategyResult(
             name="Actual",
             totalTime=total_time,
             pitLaps=pit_laps,
-            lapTimes=lap_times_data  # lap_times -> lapTimes
+            lapTimes=lap_times_data,
+            tireStints=tire_stints
         )
     except Exception as e:
         logging.error(f"실제 전략 분석 실패: {e}")
-        # --- 수정: Pydantic 모델(camelCase)에 맞게 반환 ---
         return StrategyResult(
             name="Actual", 
             totalTime=0.0, 
             pitLaps=[], 
-            lapTimes=[] # lap_times -> lapTimes
+            lapTimes=[], 
+            tireStints=[]
         )
 
 # --- 2. 타이어 성능 모델링 ---
 
 def model_tire_degradation(driver_laps: pd.DataFrame) -> Dict[str, float]:
-    """
-    타이어 컴파운드별 성능 저하(degradation)를 모델링
-    - (입력) driver_laps: UI에서 선택한 '특정 드라이버 1명'의 데이터
-    - (출력) degradation_models: {"COMPOUND": 랩당_저하값_초} (예: {"SOFT": 0.15})
-    """
-    
+    """ 타이어 컴파운드별 성능 저하(degradation)를 모델링 """
     degradation_models = {}
     
-    # [1] 모델링을 위한 데이터 정제: SC/VSC, Pit 랩 등 이상치(Noise) 제거
+    # 이상치(SC, VSC, In/Out 랩) 제거
     laps_for_model = driver_laps[
-        (driver_laps['TrackStatus'] == '1') & # 트랙 상태 Green (SC/VSC 제외)
-        (driver_laps['IsAccurate'] == True) & # 정확한 랩 타임
-        (driver_laps['PitInTime'].isna()) &   # 피트 스톱 랩 제외
+        (driver_laps['TrackStatus'] == '1') & 
+        (driver_laps['IsAccurate'] == True) & 
+        (driver_laps['PitInTime'].isna()) &
         (driver_laps['PitOutTime'].isna())
     ].copy()
     
-    # [2] 'LapTime' (TimeDelta)을 'LapTimeSeconds' (float)로 변환
     laps_for_model['LapTimeSeconds'] = laps_for_model['LapTime'].dt.total_seconds()
     
-    # [3] 타이어 컴파운드별(Soft, Medium, Hard)로 반복
     compounds = laps_for_model['Compound'].unique()
     
     for compound in compounds:
         compound_laps = laps_for_model[laps_for_model['Compound'] == compound]
         
-        # [4] 통계적 의미를 위해 최소 5랩 이상의 데이터가 있는지 확인
-        if len(compound_laps) < 5: # 데이터가 너무 적으면 모델링 스킵
+        if len(compound_laps) < 5: 
             continue
             
         try:
-            # [5] 핵심: 선형 회귀(1차) 실행. X=타이어수명, Y=랩타임(초)
-            #       - np.polyfit(X, Y, 1) -> [기울기(β₁), Y절편(β₀)] 반환
             model = np.polyfit(compound_laps['TyreLife'], compound_laps['LapTimeSeconds'], 1)
-            
-            # [6] 모델 결과(기울기) 추출: model[0]은 기울기(β₁), 즉 '랩당 성능 저하 값'임.
             degradation_per_lap = model[0]
             
-            # [7] 보정: 모델이 비정상적인 값(예: 0 미만, 0.5초 초과)을 반환하면, 0.01로 고정
             if degradation_per_lap < 0 or degradation_per_lap > 0.5:
                  degradation_per_lap = 0.01 
                  
             degradation_models[compound] = degradation_per_lap
             
         except Exception as e:
-            # (예외 처리) 모델링 실패 시, 기본 저하 값(0.1) 할당
             logging.warning(f"{compound} 모델링 실패: {e}. 기본값(0.1) 사용.")
             degradation_models[compound] = 0.1 
 
-    # [8] 폴백(Fallback): 
-    #     - 데이터가 부족해 모델링이 안 된 컴파운드(예: 5랩 미만 주행)에 대해 
-    #     - 시뮬레이션이 멈추지 않도록 미리 정의된 기본값(Hardcoded)을 할당합니다.
     if "SOFT" not in degradation_models: degradation_models["SOFT"] = 0.15
     if "MEDIUM" not in degradation_models: degradation_models["MEDIUM"] = 0.1
     if "HARD" not in degradation_models: degradation_models["HARD"] = 0.08
@@ -106,7 +123,6 @@ def get_race_events(session) -> List[RaceEvent]:
     """ SC, VSC, Red Flag 이벤트를 추출합니다. """
     events = []
     try:
-        # Safety Car 기간 추출
         sc_periods = session.laps.get_safety_car_periods()
         if sc_periods is not None:
             for _, row in sc_periods.iterrows():
@@ -154,12 +170,11 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
         )
         simulated_scenarios.append(sim_result)
         
-    # 시뮬레이션 결과가 없는 경우 (예외 처리)
     if not simulated_scenarios:
         raise HTTPException(status_code=400, detail="No valid scenarios to simulate.")
 
     optimal_result = min(simulated_scenarios, key=lambda x: x.totalTime)
-    optimal_result.name = "Optimal" # 이름 변경
+    optimal_result.name = "Optimal" 
     
     response = SimulationResponse(
         reportId=str(uuid.uuid4()),
@@ -189,17 +204,18 @@ def _simulate_strategy(
     
     lap_times_data = []
     pit_laps = []
+    tire_stints = [] # (추가)
+    
     current_stint_index = 0
     tire_life = 0
+    current_stint_start_lap = 1 # (추가)
     
     # 수동 랩 지정을 위한 임시 endLap 설정 (시나리오에 스틴트가 1개면 마지막 랩)
     if len(scenario.stints) == 1:
         scenario.stints[0].endLap = total_laps
 
     for lap in range(1, total_laps + 1):
-        # 현재 스틴트가 범위를 벗어나지 않도록 방어
         if current_stint_index >= len(scenario.stints):
-            # 마지막 스틴트를 계속 사용
             current_stint_index = len(scenario.stints) - 1
             
         stint = scenario.stints[current_stint_index]
@@ -210,11 +226,7 @@ def _simulate_strategy(
         degradation = degradation_model.get(compound, 0.1) * tire_life
         lap_time = base_lap_time + degradation
         
-        # 임시 피트 스톱 로직 (endLap이 현재 랩과 같고 마지막 랩이 아닐 때)
-        # (프론트에서 endLap이 null로 오므로, 여기서는 임시로 2스탑 (total/3)으로 가정)
-        # TODO: 프론트에서 startLap/endLap을 입력받아 이 로직을 대체해야 함
-        
-        # 임시 2스탑 로직 (예: 60랩 -> 20, 40)
+        # 임시 피트 스톱 로직
         stints_count = len(scenario.stints)
         if stints_count > 1 and (lap % (total_laps // stints_count) == 0) and lap < total_laps:
             is_pit_lap = True
@@ -222,19 +234,35 @@ def _simulate_strategy(
             is_pit_lap = False
 
         if is_pit_lap:
-            lap_time += pit_loss_seconds # 피트 손실 추가
+            lap_time += pit_loss_seconds 
             pit_laps.append(lap)
-            tire_life = 0 # 타이어 수명 초기화
             
+            # 스틴트 정보 저장
+            tire_stints.append(TireStint(
+                compound=compound,
+                startLap=current_stint_start_lap,
+                endLap=lap
+            ))
+            current_stint_start_lap = lap + 1 # 다음 스틴트 시작 랩
+            
+            tire_life = 0 
             if current_stint_index < len(scenario.stints) - 1:
                 current_stint_index += 1
         
         lap_times_data.append(lap_time)
 
-    # --- 수정: Pydantic 모델(camelCase)에 맞게 반환 ---
+    # 마지막 스틴트 저장
+    last_compound = scenario.stints[current_stint_index].compound
+    tire_stints.append(TireStint(
+        compound=last_compound,
+        startLap=current_stint_start_lap,
+        endLap=total_laps
+    ))
+
     return StrategyResult(
         name=scenario.name,
         totalTime=sum(lap_times_data),
         pitLaps=pit_laps,
-        lapTimes=lap_times_data # lap_times -> lapTimes
+        lapTimes=lap_times_data,
+        tireStints=tire_stints
     )

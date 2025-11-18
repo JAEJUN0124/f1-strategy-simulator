@@ -3,12 +3,24 @@ import 'package:frontend/providers/simulation_result_provider.dart';
 import 'package:frontend/widgets/stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart'; // intl 임포트
-import 'package:fl_chart/fl_chart.dart'; // fl_chart 임포트
+import 'package:fl_chart/fl_chart.dart';
 
 /// 분석 리포트 - '요약' 탭
 class SummaryTab extends ConsumerWidget {
   const SummaryTab({super.key});
+
+  // 시간 포맷팅 함수 (시, 분, 초)
+  String _formatTime(double totalSeconds) {
+    final int hours = totalSeconds ~/ 3600;
+    final int minutes = (totalSeconds % 3600) ~/ 60;
+    final double seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return '${hours}h ${minutes}m ${seconds.toStringAsFixed(2)}s';
+    } else {
+      return '${minutes}m ${seconds.toStringAsFixed(2)}s';
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,77 +33,89 @@ class SummaryTab extends ConsumerWidget {
     final optimal = result.optimal;
     final scenarios = result.scenarios;
 
-    // 바 차트에 표시할 모든 전략 (Actual, Optimal, Scenarios)
-    final allStrategies = [actual, optimal, ...scenarios];
-
-    // 시간 포맷터
-    final timeFormatter = NumberFormat('0.000');
+    // 중복 제거 및 데이터 구성 로직 개선
+    // scenarios 리스트에 optimal이 포함되어 있을 수 있으므로 필터링하거나,
+    // 단순 명료하게 Actual과 Optimal만 비교하고, 추가 시나리오가 있다면 그 뒤에 붙임
+    final List<StrategyResult> allStrategies = [
+      actual,
+      if (actual.name != optimal.name) optimal, // 이름이 다를 때만 추가 (혹시 모를 중복 방지)
+      // scenarios에서 optimal과 이름이 같은 것은 제외하고 추가
+      ...scenarios.where(
+        (s) => s.name != optimal.name && s.name != actual.name,
+      ),
+    ];
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // StatCard (실제 vs 최적)
+        // StatCard (시간 포맷팅 적용)
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 2.5,
+          childAspectRatio: 2.2,
+          mainAxisSpacing: 8.0,
+          crossAxisSpacing: 8.0,
           children: [
             StatCard(
-              title: 'Actual Total Time',
-              value: '${timeFormatter.format(actual.totalTime)} s',
+              title: '실제 총 시간', // (나의 기록)
+              value: _formatTime(actual.totalTime), // 포맷 적용
             ),
             StatCard(
-              title: 'Optimal Total Time',
-              value: '${timeFormatter.format(optimal.totalTime)} s',
+              title: '최적 총 시간',
+              value: _formatTime(optimal.totalTime), // 포맷 적용
               color: Colors.green[700],
             ),
-            StatCard(
-              title: 'Actual Pit Stops',
-              value: actual.pitLaps.length.toString(),
-            ),
-            StatCard(
-              title: 'Optimal Pit Stops',
-              value: optimal.pitLaps.length.toString(),
-            ),
+            StatCard(title: '실제 피트 스톱', value: '${actual.pitLaps.length} 회'),
+            StatCard(title: '최적 피트 스톱', value: '${optimal.pitLaps.length} 회'),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
 
-        // BarChart (전략 비교)
+        // BarChart
         Text(
-          'Strategy Comparison (Total Time)',
-          style: Theme.of(context).textTheme.titleLarge,
+          '전략별 총 시간 비교',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         SizedBox(
           height: 300,
           child: BarChart(
             BarChartData(
+              // ... (기존 설정 유지)
               alignment: BarChartAlignment.spaceAround,
               barGroups: _buildBarGroups(allStrategies, optimal),
+              minY: _calculateMinY(allStrategies),
               titlesData: FlTitlesData(
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (value, meta) =>
                         _bottomTitles(value, meta, allStrategies),
-                    reservedSize: 38,
+                    reservedSize: 60,
                   ),
                 ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 40,
-                    getTitlesWidget: (value, meta) =>
-                        _leftTitles(value, meta, allStrategies),
-                  ),
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
                 ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
               borderData: FlBorderData(show: false),
-              gridData: const FlGridData(show: true, drawVerticalLine: false),
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: 20,
+                getDrawingHorizontalLine: (value) =>
+                    FlLine(color: Colors.grey.shade200, strokeWidth: 1),
+              ),
+              // ... (툴팁 설정 유지)
             ),
           ),
         ),
@@ -99,23 +123,49 @@ class SummaryTab extends ConsumerWidget {
     );
   }
 
-  // --- BarChart 헬퍼 함수 ---
+  // --- Helper Functions ---
+
+  double _calculateMinY(List<StrategyResult> strategies) {
+    if (strategies.isEmpty) return 0;
+    final minVal = strategies
+        .map((e) => e.totalTime)
+        .reduce((a, b) => a < b ? a : b);
+    // 최소값에서 약간의 여유(20초)를 뺀 값을 시작점으로 설정하여 차이를 부각
+    return (minVal - 20).floorToDouble();
+  }
 
   List<BarChartGroupData> _buildBarGroups(
-      List<StrategyResult> strategies, StrategyResult optimal) {
+    List<StrategyResult> strategies,
+    StrategyResult optimal,
+  ) {
     return strategies.asMap().entries.map((entry) {
       final index = entry.key;
       final strategy = entry.value;
       final isOptimal = strategy.name == optimal.name;
+      // 첫 번째 항목(Actual)을 '나의 기록'으로 간주하여 색상 지정
+      final isActual = index == 0;
+
+      Color barColor;
+      if (isOptimal) {
+        barColor = Colors.green;
+      } else if (isActual) {
+        barColor = Colors.grey.shade700;
+      } else {
+        barColor = Colors.grey.shade400;
+      }
 
       return BarChartGroupData(
         x: index,
         barRods: [
           BarChartRodData(
             toY: strategy.totalTime,
-            color: isOptimal ? Colors.green : Colors.blueGrey,
-            width: 16,
-            borderRadius: BorderRadius.circular(4),
+            color: barColor,
+            width: 24,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(6),
+              topRight: Radius.circular(6),
+            ),
+            backDrawRodData: BackgroundBarChartRodData(show: false),
           ),
         ],
       );
@@ -123,32 +173,26 @@ class SummaryTab extends ConsumerWidget {
   }
 
   Widget _bottomTitles(
-      double value, TitleMeta meta, List<StrategyResult> strategies) {
+    double value,
+    TitleMeta meta,
+    List<StrategyResult> strategies,
+  ) {
     final index = value.toInt();
     if (index < 0 || index >= strategies.length) return const SizedBox();
 
-    final text = strategies[index].name;
+    // 텍스트가 길 경우를 대비해 줄바꿈 처리
+    String text = strategies[index].name;
+    if (text == "Actual") text = "실제 경기 기록";
+    if (text == "Optimal") text = "최적 전략";
+
     return SideTitleWidget(
       meta: meta,
-      space: 4,
-      child: Text(text, style: const TextStyle(fontSize: 10)),
+      space: 10,
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+      ),
     );
-  }
-
-  Widget _leftTitles(
-      double value, TitleMeta meta, List<StrategyResult> strategies) {
-    // 가장 느린 시간(max)과 빠른 시간(min)을 기준으로 Y축 레이블 생성
-    final minTime = strategies
-        .map((e) => e.totalTime)
-        .reduce((a, b) => a < b ? a : b);
-    
-    // Y축은 0부터 시작하지 않고 최소값 기준으로 표시
-    if (value == minTime) {
-      return Text(NumberFormat('0,000').format(value), style: const TextStyle(fontSize: 10));
-    }
-    if (value == meta.max) {
-       return Text(NumberFormat('0,000').format(value), style: const TextStyle(fontSize: 10));
-    }
-    return const SizedBox();
   }
 }

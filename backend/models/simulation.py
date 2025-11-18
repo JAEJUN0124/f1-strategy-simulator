@@ -37,12 +37,19 @@ class SimulationRequest(BaseModel):
 
 # --- 시뮬레이션 응답 모델 (Response) ---
 
+# 타이어 스틴트 정보 모델
+class TireStint(BaseModel):
+    compound: str
+    startLap: int
+    endLap: int
+
 class StrategyResult(BaseModel):
     """ 단일 전략(실제, 최적, 시나리오)의 결과 """
     name: str # "Actual", "Optimal", "S-M-H" 등
     totalTime: float # 초 (seconds)
     pitLaps: List[int]
     lapTimes: List[float]
+    tireStints: List[TireStint] = []
 
 class RaceEvent(BaseModel):
     """ 레이스 이벤트 (SC, VSC, Red Flag) """

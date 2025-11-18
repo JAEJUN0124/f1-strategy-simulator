@@ -21,114 +21,202 @@ class DashboardScreen extends ConsumerWidget {
       recentReportsProvider,
     );
 
-    // (추가) 시즌 캘린더 데이터 로드 (가장 최근 연도)
-    // providers/simulator_config_provider.dart에서 기본값이 2024년이므로
-    // racesProvider가 자동으로 2024년 캘린더를 가져옴
-    // (참고: 연도가 바뀌면 simulator_config_provider의 기본값을 변경해야 함. 일단은 24년 데이터)
+    // 시즌 캘린더 데이터 로드
     final AsyncValue<List<RaceInfo>> races = ref.watch(racesProvider);
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // --- 1. 시즌 캘린더 섹션 (CollapsibleSection 사용) ---
-        CollapsibleSection(
-          title: '시즌 캘린더',
-          icon: Icons.calendar_today_outlined,
-          initialIsExpanded: true, // 기본으로 펼쳐진 상태
-          child: races.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Text('캘린더 로드 실패: $err'),
-            data: (raceList) {
-              if (raceList.isEmpty) {
-                return const Center(child: Text('시즌 캘린더 정보가 없습니다.'));
-              }
-              // 카드 리스트 생성
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: raceList.length,
-                itemBuilder: (context, index) {
-                  final race = raceList[index];
-                  // (날짜 포맷팅은 API 응답에 날짜가 없으므로 임시로 제외)
-                  return Card(
-                    // (수정) elevation 및 margin 변경
-                    elevation: 0, // CardTheme이 0으로 설정함
-                    margin: const EdgeInsets.symmetric(vertical: 4.0),
-                    // (수정) 입력 부분이 아니므로 흰색 배경
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: ListTile(
-                      title: Text(race.name),
-                      subtitle: Text('라운드 ${race.round}'),
-                      // (날짜가 있다면 여기에 표시)
-                      // trailing: Text('3월 2일'),
-                    ),
-                  );
-                },
-              );
-            },
+        // --- 1. 시즌 캘린더 섹션 ---
+        races.when(
+          loading: () => const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
           ),
+          error: (err, stack) => Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Error: $err'),
+            ),
+          ),
+          data: (raceList) {
+            // 미리보기 위젯 (최대 3개 + '...')과 전체 위젯 생성
+            Widget previewWidget = _buildRaceList(
+              context,
+              raceList,
+              isPreview: true,
+            );
+            Widget fullWidget = _buildRaceList(
+              context,
+              raceList,
+              isPreview: false,
+            );
+
+            return CollapsibleSection(
+              title: '시즌 캘린더',
+              icon: Icons.calendar_today_outlined,
+              initialIsExpanded: false, // 기본적으로 접힘 상태
+              previewChild: previewWidget, // 접혔을 때 보일 위젯
+              child: fullWidget, // 펼쳤을 때 보일 위젯
+            );
+          },
         ),
 
-        // --- 2. 최근 리포트 섹션 (CollapsibleSection 사용) ---
+        // --- 2. 최근 리포트 섹션 ---
         CollapsibleSection(
           title: '최근 리포트',
           icon: Icons.article_outlined,
-          initialIsExpanded: true, // 기본으로 펼쳐진 상태
-          child: recentReports.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24.0),
-                  child: Center(
-                    child: Text('아직 저장된 리포트가 없습니다.\n시뮬레이터를 실행해 보세요!'),
-                  ),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: recentReports.length,
-                  itemBuilder: (context, index) {
-                    final report = recentReports[index];
-                    final StrategyResult actual = report.actual;
-                    final StrategyResult optimal = report.optimal;
-                    final driverId = optimal.name;
-                    final totalTime = actual.totalTime;
-
-                    return Card(
-                      // (수정) elevation 및 margin 변경
-                      elevation: 0,
-                      margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      // (수정) 입력 부분이 아니므로 흰색 배경
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(color: Colors.grey.shade200),
-                      ),
-                      child: ListTile(
-                        title: Text('리포트: ${report.reportId.substring(0, 8)}'),
-                        subtitle: Text(
-                          '드라이버: $driverId / 기록: ${totalTime.toStringAsFixed(2)}초\n'
-                          '저장일: ${DateFormat.yMd().add_jm().format(DateTime.now())}', // (참고: 이 시간은 저장된 시간이 아닌 '지금' 시간)
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios),
-                        isThreeLine: true,
-                        onTap: () {
-                          ref.read(simulationResultProvider.notifier).state =
-                              report;
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AnalysisScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
+          initialIsExpanded: false, // 기본적으로 접힘 상태
+          previewChild: _buildReportList(
+            context,
+            ref,
+            recentReports,
+            isPreview: true,
+          ),
+          child: _buildReportList(
+            context,
+            ref,
+            recentReports,
+            isPreview: false,
+          ),
         ),
+      ],
+    );
+  }
+
+  /// 시간 포맷팅 함수 (초 단위 -> h m s)
+  String _formatTime(double totalSeconds) {
+    final int hours = totalSeconds ~/ 3600;
+    final int minutes = (totalSeconds % 3600) ~/ 60;
+    final double seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return '${hours}h ${minutes}m ${seconds.toStringAsFixed(2)}s';
+    } else {
+      return '${minutes}m ${seconds.toStringAsFixed(2)}s';
+    }
+  }
+
+  /// 캘린더 리스트 빌더 (미리보기 지원)
+  Widget _buildRaceList(
+    BuildContext context,
+    List<RaceInfo> raceList, {
+    required bool isPreview,
+  }) {
+    if (raceList.isEmpty) {
+      return const Center(child: Text('시즌 캘린더 정보가 없습니다.'));
+    }
+
+    // 미리보기 모드일 때 최대 3개까지만 표시
+    final int itemCount = isPreview
+        ? (raceList.length > 3 ? 3 : raceList.length)
+        : raceList.length;
+    // 3개 초과 시 '...' 아이콘 표시 여부
+    final bool showEllipsis = isPreview && raceList.length > 3;
+
+    return Column(
+      children: [
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: itemCount,
+          itemBuilder: (context, index) {
+            final race = raceList[index];
+            return Card(
+              elevation: 0,
+              margin: const EdgeInsets.symmetric(vertical: 4.0),
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: ListTile(
+                title: Text(race.name),
+                subtitle: Text('라운드 ${race.round}'),
+              ),
+            );
+          },
+        ),
+        // 미리보기 상태에서 항목이 더 있을 경우 '...' 아이콘 표시
+        if (showEllipsis)
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0),
+            child: Icon(Icons.more_horiz, color: Colors.grey),
+          ),
+      ],
+    );
+  }
+
+  /// 리포트 리스트 빌더 (미리보기 지원)
+  Widget _buildReportList(
+    BuildContext context,
+    WidgetRef ref,
+    List<SimulationResponse> reports, {
+    required bool isPreview,
+  }) {
+    if (reports.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24.0),
+        child: Center(child: Text('아직 저장된 리포트가 없습니다.\n시뮬레이터를 실행해 보세요!')),
+      );
+    }
+
+    // 미리보기 모드일 때 최대 3개까지만 표시
+    final int itemCount = isPreview
+        ? (reports.length > 3 ? 3 : reports.length)
+        : reports.length;
+    final bool showEllipsis = isPreview && reports.length > 3;
+
+    return Column(
+      children: [
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: itemCount,
+          itemBuilder: (context, index) {
+            final report = reports[index];
+            final StrategyResult actual = report.actual;
+
+            // 리포트 번호 계산
+            final int reportNumber = reports.length - index;
+            final totalTime = actual.totalTime;
+
+            return Card(
+              elevation: 0,
+              margin: const EdgeInsets.symmetric(vertical: 4.0),
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: ListTile(
+                title: Text('리포트 #$reportNumber'),
+                subtitle: Text(
+                  '기록: ${_formatTime(totalTime)}\n'
+                  '저장일: ${DateFormat.yMd().add_jm().format(DateTime.now())}',
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                isThreeLine: true,
+                onTap: () {
+                  ref.read(simulationResultProvider.notifier).state = report;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AnalysisScreen(),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+        // 미리보기 상태에서 항목이 더 있을 경우 '...' 아이콘 표시
+        if (showEllipsis)
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0),
+            child: Icon(Icons.more_horiz, color: Colors.grey),
+          ),
       ],
     );
   }
