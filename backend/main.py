@@ -1,6 +1,6 @@
 import logging
 import pytz
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -68,6 +68,17 @@ async def shutdown_event():
     logging.info("APScheduler 종료됨.")
 
 # --- 기본 엔드포인트 ---
+
+@app.get("/health", status_code=200)
+async def health_check(response: Response):
+    """
+    서버 상태 확인용 헬스체크 엔드포인트
+    로드 밸런서나 오케스트레이션 도구에서 호출
+    """
+    # 여기에 DB 연결 확인이나 필수 서비스 상태 확인 로직을 추가할 수 있습니다.
+    # 예: if not db.is_connected(): response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    
+    return {"status": "ok"}
 
 @app.get("/")
 async def read_root():
