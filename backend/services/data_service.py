@@ -4,7 +4,7 @@ from typing import List
 from models.simulation import RaceInfo, DriverInfo
 from functools import lru_cache
 
-@lru_cache(maxsize=30) 
+@lru_cache(maxsize=20) 
 def load_race_data(year: int, race_id: str):
     """
     (수정됨) FastF1 세션 데이터를 로드합니다 (캐시 활용).
