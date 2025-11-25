@@ -5,7 +5,7 @@ from pathlib import Path
 
 # 캐시 디렉토리 설정
 CACHE_DIR = Path(os.getcwd()).parent / ".cache" / "fastf1"
-CACHE_LIMIT_GB = 95  # 용량 제한을 95GB로 설정
+CACHE_LIMIT_GB = 70  # 용량 제한을 70GB로 설정
 
 def setup_fast_f1_cache():
     """
