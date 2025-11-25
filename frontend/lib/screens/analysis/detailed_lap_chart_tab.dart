@@ -7,12 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class DetailedLapChartTab extends ConsumerWidget {
   const DetailedLapChartTab({super.key});
 
-  // 타이어별 색상 정의
-  static const Color softColor = Color(0xFFFF3B30); // Red
-  static const Color mediumColor = Color(0xFFFFCC00); // Yellow
-  static const Color hardColor = Colors.grey; // Hard
-  static const Color interColor = Colors.green;
-  static const Color wetColor = Colors.blue;
+  static const Color softColor = Color(0xFFFF3B30);
+  static const Color mediumColor = Color(0xFFFFCC00);
+  static const Color hardColor = Color(0xFFFFFFFF);
+  static const Color hardColorDisplay = Color(0xFF9E9E9E);
 
   Color _getTireColor(String compound) {
     switch (compound.toUpperCase()) {
@@ -21,11 +19,11 @@ class DetailedLapChartTab extends ConsumerWidget {
       case 'MEDIUM':
         return mediumColor;
       case 'HARD':
-        return hardColor;
+        return hardColorDisplay;
       case 'INTERMEDIATE':
-        return interColor;
+        return Colors.green;
       case 'WET':
-        return wetColor;
+        return Colors.blue;
       default:
         return Colors.black;
     }
@@ -34,14 +32,11 @@ class DetailedLapChartTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final result = ref.watch(simulationResultProvider);
-    if (result == null) {
-      return const Center(child: Text('No simulation data.'));
-    }
+    if (result == null) return const Center(child: Text('No data'));
 
     final actual = result.actual;
     final optimal = result.optimal;
 
-    // Y축 범위 자동 계산
     double minY = double.infinity;
     double maxY = double.negativeInfinity;
 
@@ -56,42 +51,38 @@ class DetailedLapChartTab extends ConsumerWidget {
     updateMinMax(actual.lapTimes);
     updateMinMax(optimal.lapTimes);
 
-    // 그래프 여백 확보
     final double padding = (maxY - minY) * 0.1;
-    if (padding == 0) {
-      minY -= 1;
-      maxY += 1;
-    } else {
-      minY -= padding;
-      maxY += padding;
-    }
+    minY -= padding;
+    maxY += padding;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "랩 타임 상세 비교 (타이어별)",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "실선: 실제 기록 / 점선: 시뮬레이션(최적)",
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildLegendItem(softColor, "Soft"),
+                  _buildLegendItem(mediumColor, "Medium"),
+                  _buildLegendItem(hardColorDisplay, "Hard"),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 8),
-          // 범례
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildLegendItem(softColor, "Soft"),
-              const SizedBox(width: 12),
-              _buildLegendItem(mediumColor, "Medium"),
-              const SizedBox(width: 12),
-              _buildLegendItem(hardColor, "Hard"),
+              _buildLineStyleLegend(false, "실제 기록 (실선)"), // (수정) 한글로 변경
+              const SizedBox(width: 16),
+              _buildLineStyleLegend(true, "최적 전략 (점선)"), // (수정) 한글로 변경
             ],
           ),
           const SizedBox(height: 24),
+
           Expanded(
             child: LineChart(
               LineChartData(
@@ -100,14 +91,12 @@ class DetailedLapChartTab extends ConsumerWidget {
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (spot) => Colors.white,
-                    tooltipBorder: const BorderSide(color: Colors.grey),
-                    getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                      return touchedBarSpots.map((barSpot) {
-                        // 툴팁에서 어떤 라인인지 구분 표시
+                    tooltipBorder: BorderSide(color: Colors.grey.shade300),
+                    getTooltipItems: (spots) {
+                      return spots.map((barSpot) {
                         final isActual = barSpot.barIndex == 0;
-                        final label = isActual ? "실제" : "최적";
                         return LineTooltipItem(
-                          '$label: ${barSpot.y.toStringAsFixed(2)} s',
+                          '${isActual ? "실제" : "최적"}: ${barSpot.y.toStringAsFixed(2)}s', // (수정) 한글로 변경
                           TextStyle(
                             color:
                                 barSpot.bar.gradient?.colors.first ??
@@ -159,20 +148,13 @@ class DetailedLapChartTab extends ConsumerWidget {
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (_) =>
-                      FlLine(color: Colors.grey.shade200),
+                      FlLine(color: Colors.grey.shade200, strokeWidth: 1),
                 ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
+                borderData: FlBorderData(show: false),
 
                 lineBarsData: [
-                  // 1. 실제 기록 (실선, 타이어 색상 적용)
                   _buildColoredLineBar(actual, isDashed: false, opacity: 1.0),
-
-                  // 2. 최적 기록 (점선, 타이어 색상 적용, 약간 투명하게)
-                  // 이제 최적 전략도 타이어 정보(tireStints)를 기반으로 색상이 입혀집니다.
-                  _buildColoredLineBar(optimal, isDashed: true, opacity: 0.7),
+                  _buildColoredLineBar(optimal, isDashed: true, opacity: 0.6),
                 ],
               ),
             ),
@@ -186,17 +168,38 @@ class DetailedLapChartTab extends ConsumerWidget {
     return Row(
       children: [
         Container(
-          width: 12,
-          height: 12,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLineStyleLegend(bool isDashed, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 2,
+          color: Colors.black54,
+          child: isDashed
+              ? const Center(
+                  child: Text("- - -", style: TextStyle(fontSize: 6)),
+                )
+              : null,
+        ),
+        const SizedBox(width: 6),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
 
-  // 타이어 스틴트에 따라 그라데이션 라인 생성
   LineChartBarData _buildColoredLineBar(
     StrategyResult strategy, {
     required bool isDashed,
@@ -204,10 +207,8 @@ class DetailedLapChartTab extends ConsumerWidget {
   }) {
     final List<Color> colors = [];
     final List<double> stops = [];
-
     final totalLaps = strategy.lapTimes.length.toDouble();
 
-    // 데이터가 없거나 타이어 정보가 없는 경우 기본 검정색 처리
     if (strategy.tireStints.isEmpty) {
       return LineChartBarData(
         spots: strategy.lapTimes
@@ -216,22 +217,17 @@ class DetailedLapChartTab extends ConsumerWidget {
             .map((e) => FlSpot((e.key + 1).toDouble(), e.value))
             .toList(),
         color: Colors.black.withOpacity(opacity),
-        barWidth: 3,
+        barWidth: 2,
         isCurved: true,
         dotData: const FlDotData(show: false),
         dashArray: isDashed ? [5, 5] : null,
       );
     }
 
-    // 그라데이션 정지점 생성 로직
     for (var stint in strategy.tireStints) {
       final color = _getTireColor(stint.compound).withOpacity(opacity);
-
-      // X축 비율 계산 (0.0 ~ 1.0)
       final startStop = (stint.startLap - 1) / totalLaps;
       final endStop = stint.endLap / totalLaps;
-
-      // 색상이 섞이지 않고 딱 끊어지도록 같은 위치에 점 두 개 추가
       colors.add(color);
       stops.add(startStop);
       colors.add(color);
@@ -244,17 +240,11 @@ class DetailedLapChartTab extends ConsumerWidget {
           .entries
           .map((e) => FlSpot((e.key + 1).toDouble(), e.value))
           .toList(),
-      // gradient 적용
-      gradient: LinearGradient(
-        colors: colors,
-        stops: stops,
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      ),
+      gradient: LinearGradient(colors: colors, stops: stops),
       barWidth: 3,
       isCurved: true,
       dotData: const FlDotData(show: false),
-      dashArray: isDashed ? [5, 5] : null, // 점선 옵션
+      dashArray: isDashed ? [5, 5] : null,
     );
   }
 }

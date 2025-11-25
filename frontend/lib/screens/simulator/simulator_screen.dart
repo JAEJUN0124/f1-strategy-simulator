@@ -19,7 +19,6 @@ class SimulatorScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // --- 1. Provider 감시 (Watch) ---
     final config = ref.watch(simulatorConfigProvider);
     final configNotifier = ref.read(simulatorConfigProvider.notifier);
     final scenarios = ref.watch(strategyProvider);
@@ -31,16 +30,12 @@ class SimulatorScreen extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      // 새 UI에서는 하단 버튼 고정을 위해 Scaffold 사용
-      // 기존 ListView를 Column으로 변경
       body: Column(
         children: [
           Expanded(
-            // --- 스크롤 영역 ---
             child: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
-                // --- 1. 경기 데이터 선택 카드 ---
                 _buildDataSelectionCard(
                   context,
                   textTheme,
@@ -51,25 +46,29 @@ class SimulatorScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // --- 2. 전략 시나리오 정의 ---
-                Text(
-                  '2. 전략 시나리오 정의',
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: Text(
+                    '2. 전략 시나리오 정의',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
-                // --- 2.1. 시나리오 추가 버튼 ---
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add_chart_rounded),
                   label: const Text('비교 시나리오 추가'),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade100,
-                    minimumSize: const Size(double.infinity, 48),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black87,
+                    minimumSize: const Size(double.infinity, 52),
+                    side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    elevation: 0,
                   ),
                   onPressed: () {
                     strategyNotifier.addScenario(
@@ -80,19 +79,19 @@ class SimulatorScreen extends ConsumerWidget {
                     );
                   },
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
 
-                // --- 2.2. 전략 시나리오 목록 ---
                 ...scenarios.asMap().entries.map((entry) {
                   int index = entry.key;
                   Scenario scenario = entry.value;
                   return StrategyCard(scenario: scenario, scenarioIndex: index);
                 }),
+
+                const SizedBox(height: 24),
               ],
             ),
           ),
 
-          // --- 3. 하단 고정 시뮬레이션 실행 버튼 ---
           _buildRunSimulationButton(
             context,
             ref,
@@ -105,7 +104,6 @@ class SimulatorScreen extends ConsumerWidget {
     );
   }
 
-  /// 1. 경기 데이터 선택 카드 위젯
   Widget _buildDataSelectionCard(
     BuildContext context,
     TextTheme textTheme,
@@ -114,74 +112,46 @@ class SimulatorScreen extends ConsumerWidget {
     AsyncValue<List<RaceInfo>> races,
     AsyncValue<List<DriverInfo>> drivers,
   ) {
-    // 공통 드롭다운 스타일
-    final inputDecoration = InputDecoration(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8.0),
-        borderSide: BorderSide.none, // (수정) 테두리 제거
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8.0),
-        borderSide: BorderSide.none, // (수정) 테두리 제거
-      ),
-      filled: true,
-      // (수정) 입력 필드 배경색을 회색으로
-      fillColor: Colors.grey.shade100,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16.0,
-        vertical: 12.0,
-      ),
-    );
+    const inputDecoration = InputDecoration(isDense: true);
 
     return Card(
-      // (수정) CardTheme을 사용하므로 color, elevation, shape 제거
-      // elevation: 0,
-      // shape: RoundedRectangleBorder(
-      //   borderRadius: BorderRadius.circular(12),
-      //   side: BorderSide(color: Colors.grey.shade300),
-      // ),
-      // color: Colors.white, // CardTheme이 흰색으로 설정함
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '1. 경기 데이터 선택',
               style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // --- 연도 선택 ---
-            const Text('연도', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 4),
+            _buildLabel('시즌 연도'),
             DropdownButtonFormField<int>(
               value: config.selectedYear,
               decoration: inputDecoration,
               items: [2024, 2023, 2022]
                   .map(
-                    (year) => DropdownMenuItem(
-                      value: year,
-                      child: Text(year.toString()),
-                    ),
+                    (year) =>
+                        DropdownMenuItem(value: year, child: Text('$year 시즌')),
                   )
                   .toList(),
               onChanged: (year) {
-                if (year != null) {
-                  configNotifier.setYear(year);
-                }
+                if (year != null) configNotifier.setYear(year);
               },
             ),
             const SizedBox(height: 16),
 
-            // --- 그랑프리 선택 ---
-            const Text('그랑프리', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 4),
+            _buildLabel('그랑프리'),
             races.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Text('Error: $err'),
+              loading: () =>
+                  const Center(child: LinearProgressIndicator(minHeight: 2)),
+              error: (err, stack) => Text(
+                '목록 로드 실패: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
               data: (raceList) {
                 final currentRaceId =
                     raceList.any((r) => r.raceId == config.selectedRaceId)
@@ -189,36 +159,35 @@ class SimulatorScreen extends ConsumerWidget {
                     : null;
                 return DropdownButtonFormField<String>(
                   value: currentRaceId,
-                  hint: const Text('경기 선택'),
-                  decoration: inputDecoration,
+                  hint: const Text('경기 선택'), // (수정)
                   isExpanded: true,
                   items: raceList
                       .map(
                         (race) => DropdownMenuItem(
                           value: race.raceId,
                           child: Text(
-                            race.name,
+                            "${race.round}R. ${race.name}",
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       )
                       .toList(),
                   onChanged: (raceId) {
-                    if (raceId != null) {
-                      configNotifier.setRace(raceId);
-                    }
+                    if (raceId != null) configNotifier.setRace(raceId);
                   },
                 );
               },
             ),
             const SizedBox(height: 16),
 
-            // --- 드라이버 선택 ---
-            const Text('드라이버', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 4),
+            _buildLabel('드라이버'),
             drivers.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Text('Error: $err'),
+              loading: () =>
+                  const Center(child: LinearProgressIndicator(minHeight: 2)),
+              error: (err, stack) => Text(
+                '목록 로드 실패: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
               data: (driverList) {
                 final currentDriverId =
                     driverList.any((d) => d.driverId == config.selectedDriverId)
@@ -227,13 +196,7 @@ class SimulatorScreen extends ConsumerWidget {
                 bool isDisabled = driverList.isEmpty;
                 return DropdownButtonFormField<String>(
                   value: currentDriverId,
-                  hint: const Text('드라이버 선택'),
-                  decoration: inputDecoration.copyWith(
-                    // (수정) 비활성화 시 더 연한 회색으로
-                    fillColor: isDisabled
-                        ? Colors.grey.shade200
-                        : Colors.grey.shade100,
-                  ),
+                  hint: const Text('드라이버 선택'), // (수정)
                   isExpanded: true,
                   items: driverList
                       .map(
@@ -246,9 +209,8 @@ class SimulatorScreen extends ConsumerWidget {
                   onChanged: isDisabled
                       ? null
                       : (driverId) {
-                          if (driverId != null) {
+                          if (driverId != null)
                             configNotifier.setDriver(driverId);
-                          }
                         },
                 );
               },
@@ -259,7 +221,20 @@ class SimulatorScreen extends ConsumerWidget {
     );
   }
 
-  /// 3. 하단 고정 시뮬레이션 실행 버튼 위젯
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0, left: 2.0),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          color: Colors.black54,
+        ),
+      ),
+    );
+  }
+
   Widget _buildRunSimulationButton(
     BuildContext context,
     WidgetRef ref,
@@ -267,7 +242,6 @@ class SimulatorScreen extends ConsumerWidget {
     List<Scenario> scenarios,
     double pitStopSeconds,
   ) {
-    // 버튼 활성화 조건
     final bool canRun =
         config.selectedRaceId != null &&
         config.selectedDriverId != null &&
@@ -275,25 +249,30 @@ class SimulatorScreen extends ConsumerWidget {
         scenarios.every((s) => s.stints.isNotEmpty);
 
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       decoration: BoxDecoration(
-        color: Colors.white, // (수정) 버튼 컨테이너 배경색
-        border: Border(top: BorderSide(color: Colors.grey.shade300)),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          // 회색 버튼 스타일
-          backgroundColor: canRun ? Colors.grey.shade700 : Colors.grey.shade300,
+          backgroundColor: canRun
+              ? Theme.of(context).primaryColor
+              : Colors.grey.shade300,
           foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          minimumSize: const Size(double.infinity, 56),
+          elevation: canRun ? 4 : 0,
+          shadowColor: Theme.of(context).primaryColor.withOpacity(0.4),
         ),
         onPressed: !canRun
-            ? null // 필수값 없으면 비활성화
+            ? null
             : () async {
-                // 기존 시뮬레이션 실행 로직
                 final api = ref.read(apiServiceProvider);
                 final request = SimulationRequest(
                   year: config.selectedYear,
@@ -303,9 +282,8 @@ class SimulatorScreen extends ConsumerWidget {
                   scenarios: scenarios,
                 );
 
-                // 로딩 인디케이터
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('시뮬레이션을 실행합니다...')),
+                  const SnackBar(content: Text('시뮬레이션 데이터를 분석 중입니다...')),
                 );
 
                 final response = await api.runSimulation(request);
@@ -324,15 +302,13 @@ class SimulatorScreen extends ConsumerWidget {
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('시뮬레이션 실패! API 서버 연결을 확인하세요.'),
-                    ),
+                    const SnackBar(content: Text('시뮬레이션 실패. 서버 상태를 확인해주세요.')),
                   );
                 }
               },
         child: const Text(
-          '시뮬레이션 실행',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          '시뮬레이션 실행', // (수정) 한글로만 표기
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
       ),
     );

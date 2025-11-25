@@ -3,16 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/screens/main_screen.dart';
 import 'package:frontend/services/local_storage_service.dart';
 
-// main 함수를 async로 변경
 Future<void> main() async {
-  // Flutter 바인딩 초기화 (async main 실행 시 필수)
   WidgetsFlutterBinding.ensureInitialized();
-
-  // SharedPreferences를 로드하여 LocalStorageService 인스턴스 생성
   final localStorage = await LocalStorageService.create();
 
   runApp(
-    // ProviderScope에 생성된 서비스 인스턴스를 주입(override)
     ProviderScope(
       overrides: [localStorageServiceProvider.overrideWithValue(localStorage)],
       child: const MyApp(),
@@ -25,28 +20,88 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // F1 스타일의 강렬한 레드 컬러 정의
+    const primaryColor = Color(0xFFFF1801);
+
     return MaterialApp(
       title: 'F1 Strategy Simulator',
+      debugShowCheckedModeBanner: false, // 디버그 배너 제거 (깔끔하게)
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryColor,
+          primary: primaryColor,
+          // 배경색을 완전 흰색이 아닌 아주 연한 회색으로 설정하여 카드와 구분감 형성
+          surface: Colors.white,
+          background: const Color(0xFFF5F7FA),
+        ),
         useMaterial3: true,
-        // (수정) 앱의 기본 배경색을 흰색으로 설정
-        scaffoldBackgroundColor: Colors.white,
-        canvasColor: Colors.white,
+        scaffoldBackgroundColor: const Color(0xFFF5F7FA), // 앱 배경색 변경
+        // AppBar 테마 (상단 바 스타일)
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.w800, // 폰트 굵기 강화
+            letterSpacing: -0.5,
+          ),
+          iconTheme: IconThemeData(color: Colors.black87),
+        ),
 
-        // (오류 수정) CardTheme -> CardThemeData로 변경
-        cardTheme: const CardThemeData(
+        // 카드 테마 (입체감 부여)
+        cardTheme: CardThemeData(
           color: Colors.white,
-          elevation: 0, // 기본 elevation 제거
+          elevation: 2, // 그림자 추가
+          shadowColor: Colors.black.withOpacity(0.05),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-            // (수정) 0xFFE0E0E0 -> 0xFFEEEEEE (더 연한 회색)
-            side: BorderSide(color: Color(0xFFEEEEEE)),
+            borderRadius: BorderRadius.circular(16), // 더 둥근 모서리
+            side: BorderSide.none, // 테두리 제거하고 그림자로 대체
+          ),
+          margin: const EdgeInsets.symmetric(vertical: 8),
+        ),
+
+        // 입력 필드 테마 (깔끔한 스타일)
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF0F2F5), // 연한 회색 배경
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: primaryColor, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+        ),
+
+        // 버튼 테마
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
         ),
       ),
-      // 시작 화면을 MainScreen으로 변경
-      home: MainScreen(),
+      home: const MainScreen(),
     );
   }
 }

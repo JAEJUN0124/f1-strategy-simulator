@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
-/// '실제 vs 최적' 비교 등을 위한 공용 스탯 카드
 class StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -17,29 +16,33 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                // (수정) 12 -> 14로 크기 키움
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 4),
             AutoSizeText(
               value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-              maxLines: 1, // 1줄로 제한
-              minFontSize: 10, // 최소 글꼴 크기
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: color ?? Colors.black87,
+                height: 1.2,
+              ),
+              maxLines: 1,
+              minFontSize: 14,
             ),
           ],
         ),

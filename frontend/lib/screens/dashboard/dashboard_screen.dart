@@ -7,68 +7,51 @@ import 'package:frontend/screens/analysis/analysis_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:frontend/models/strategy_result.dart';
 import 'package:frontend/widgets/collapsible_section.dart';
 
-/// 대시보드 화면
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 로컬 저장소에서 최근 리포트 목록 로드
     final List<SimulationResponse> recentReports = ref.watch(
       recentReportsProvider,
     );
-
-    // 시즌 캘린더 데이터 로드
     final AsyncValue<List<RaceInfo>> races = ref.watch(racesProvider);
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // --- 1. 시즌 캘린더 섹션 ---
+        // 1. 시즌 캘린더 섹션
         races.when(
           loading: () => const Card(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(24),
               child: Center(child: CircularProgressIndicator()),
             ),
           ),
           error: (err, stack) => Card(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Text('Error: $err'),
             ),
           ),
           data: (raceList) {
-            // 미리보기 위젯 (최대 3개 + '...')과 전체 위젯 생성
-            Widget previewWidget = _buildRaceList(
-              context,
-              raceList,
-              isPreview: true,
-            );
-            Widget fullWidget = _buildRaceList(
-              context,
-              raceList,
-              isPreview: false,
-            );
-
             return CollapsibleSection(
               title: '시즌 캘린더',
-              icon: Icons.calendar_today_outlined,
-              initialIsExpanded: false, // 기본적으로 접힘 상태
-              previewChild: previewWidget, // 접혔을 때 보일 위젯
-              child: fullWidget, // 펼쳤을 때 보일 위젯
+              icon: Icons.calendar_month_rounded,
+              initialIsExpanded: false,
+              previewChild: _buildRaceList(context, raceList, isPreview: true),
+              child: _buildRaceList(context, raceList, isPreview: false),
             );
           },
         ),
 
-        // --- 2. 최근 리포트 섹션 ---
+        // 2. 최근 리포트 섹션
         CollapsibleSection(
           title: '최근 리포트',
-          icon: Icons.article_outlined,
-          initialIsExpanded: false, // 기본적으로 접힘 상태
+          icon: Icons.history_rounded,
+          initialIsExpanded: true,
           previewChild: _buildReportList(
             context,
             ref,
@@ -86,69 +69,82 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  /// 시간 포맷팅 함수 (초 단위 -> h m s)
   String _formatTime(double totalSeconds) {
     final int hours = totalSeconds ~/ 3600;
     final int minutes = (totalSeconds % 3600) ~/ 60;
     final double seconds = totalSeconds % 60;
-    if (hours > 0) {
-      return '${hours}h ${minutes}m ${seconds.toStringAsFixed(2)}s';
-    } else {
-      return '${minutes}m ${seconds.toStringAsFixed(2)}s';
-    }
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${minutes}m ${seconds.toStringAsFixed(1)}s';
   }
 
-  /// 캘린더 리스트 빌더 (미리보기 지원)
   Widget _buildRaceList(
     BuildContext context,
     List<RaceInfo> raceList, {
     required bool isPreview,
   }) {
-    if (raceList.isEmpty) {
-      return const Center(child: Text('시즌 캘린더 정보가 없습니다.'));
-    }
+    if (raceList.isEmpty) return const Center(child: Text('정보가 없습니다.'));
 
-    // 미리보기 모드일 때 최대 3개까지만 표시
     final int itemCount = isPreview
         ? (raceList.length > 3 ? 3 : raceList.length)
         : raceList.length;
-    // 3개 초과 시 '...' 아이콘 표시 여부
-    final bool showEllipsis = isPreview && raceList.length > 3;
 
     return Column(
       children: [
-        ListView.builder(
+        ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: itemCount,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final race = raceList[index];
-            return Card(
-              elevation: 0,
-              margin: const EdgeInsets.symmetric(vertical: 4.0),
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Colors.grey.shade200),
+            return Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
-                title: Text(race.name),
-                subtitle: Text('라운드 ${race.round}'),
+                // 라운드 번호
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Text(
+                    "${race.round}",
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                title: Text(
+                  race.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                // (수정) Race Week 서브타이틀 삭제됨
               ),
             );
           },
         ),
-        // 미리보기 상태에서 항목이 더 있을 경우 '...' 아이콘 표시
-        if (showEllipsis)
-          const Padding(
-            padding: EdgeInsets.only(top: 8.0),
-            child: Icon(Icons.more_horiz, color: Colors.grey),
+        if (isPreview && raceList.length > 3)
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: Text(
+              "+ ${raceList.length - 3} more races", // 이 부분은 더보기 로직이라 그대로 둠 (원하시면 '개 더보기'로 수정 가능)
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
           ),
       ],
     );
   }
 
-  /// 리포트 리스트 빌더 (미리보기 지원)
   Widget _buildReportList(
     BuildContext context,
     WidgetRef ref,
@@ -156,68 +152,130 @@ class DashboardScreen extends ConsumerWidget {
     required bool isPreview,
   }) {
     if (reports.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24.0),
-        child: Center(child: Text('아직 저장된 리포트가 없습니다.\n시뮬레이터를 실행해 보세요!')),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(
+                Icons.note_add_outlined,
+                size: 40,
+                color: Colors.grey.shade300,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '저장된 리포트가 없습니다.',
+                style: TextStyle(color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    // 미리보기 모드일 때 최대 3개까지만 표시
     final int itemCount = isPreview
         ? (reports.length > 3 ? 3 : reports.length)
         : reports.length;
-    final bool showEllipsis = isPreview && reports.length > 3;
 
-    return Column(
-      children: [
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: itemCount,
-          itemBuilder: (context, index) {
-            final report = reports[index];
-            final StrategyResult actual = report.actual;
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: itemCount,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final report = reports[index];
+        final actual = report.actual;
+        final reportNumber = reports.length - index;
 
-            // 리포트 번호 계산
-            final int reportNumber = reports.length - index;
-            final totalTime = actual.totalTime;
-
-            return Card(
-              elevation: 0,
-              margin: const EdgeInsets.symmetric(vertical: 4.0),
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Colors.grey.shade200),
-              ),
-              child: ListTile(
-                title: Text('리포트 #$reportNumber'),
-                subtitle: Text(
-                  '기록: ${_formatTime(totalTime)}\n'
-                  '저장일: ${DateFormat.yMd().add_jm().format(DateTime.now())}',
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                isThreeLine: true,
-                onTap: () {
-                  ref.read(simulationResultProvider.notifier).state = report;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AnalysisScreen(),
-                    ),
-                  );
-                },
-              ),
+        return InkWell(
+          onTap: () {
+            ref.read(simulationResultProvider.notifier).state = report;
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AnalysisScreen()),
             );
           },
-        ),
-        // 미리보기 상태에서 항목이 더 있을 경우 '...' 아이콘 표시
-        if (showEllipsis)
-          const Padding(
-            padding: EdgeInsets.only(top: 8.0),
-            child: Icon(Icons.more_horiz, color: Colors.grey),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.analytics_outlined,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '리포트 #$reportNumber', // (수정) 한글로 변경
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.timer_outlined,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatTime(actual.totalTime),
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            DateFormat.MMMd().format(DateTime.now()),
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.grey),
+              ],
+            ),
           ),
-      ],
+        );
+      },
     );
   }
 }

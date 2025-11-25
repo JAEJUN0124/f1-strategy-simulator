@@ -4,7 +4,6 @@ import 'package:frontend/models/simulation_request.dart';
 import 'package:frontend/providers/strategy_provider.dart';
 import 'package:frontend/widgets/simulator/stint_editor.dart';
 
-/// 개별 전략 시나리오 카드 위젯
 class StrategyCard extends ConsumerStatefulWidget {
   final Scenario scenario;
   final int scenarioIndex;
@@ -20,10 +19,7 @@ class StrategyCard extends ConsumerStatefulWidget {
 }
 
 class _StrategyCardState extends ConsumerState<StrategyCard> {
-  // 시나리오 이름 수정을 위한 컨트롤러
   late final TextEditingController _nameController;
-
-  // "피트 랩 자동 최적화" 스위치 상태
   bool _isAutoOptimize = true;
 
   @override
@@ -41,7 +37,6 @@ class _StrategyCardState extends ConsumerState<StrategyCard> {
   @override
   void didUpdateWidget(covariant StrategyCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Provider에서 이름이 변경되었을 때 (거의 발생하지 않음) 컨트롤러 동기화
     if (widget.scenario.name != _nameController.text) {
       _nameController.text = widget.scenario.name;
     }
@@ -50,123 +45,141 @@ class _StrategyCardState extends ConsumerState<StrategyCard> {
   @override
   Widget build(BuildContext context) {
     final strategyNotifier = ref.read(strategyProvider.notifier);
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
-      // (수정) CardTheme을 따르되, 배경색만 회색으로 변경
-      color: Colors.grey.shade50,
-      // (수정) CardTheme을 사용하므로 elevation, shape 제거
-      // elevation: 0,
-      // shape: RoundedRectangleBorder(
-      //   borderRadius: BorderRadius.circular(12),
-      //   side: BorderSide(color: Colors.grey.shade300),
-      // ),
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      // 메인 테마의 Card 스타일을 자동으로 따릅니다 (둥근 모서리, 그림자 등)
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- 1. 카드 헤더: 시나리오 이름 (수정 가능) 및 삭제 버튼 ---
+            // --- 1. 카드 헤더 ---
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // 시나리오 이름 입력 (밑줄 스타일로 변경하여 깔끔하게)
                 Expanded(
-                  // (추가) 입력 필드 배경을 회색으로
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200, // 회색 배경
-                      borderRadius: BorderRadius.circular(8.0),
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      hintText: '시나리오 이름',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      fillColor: Colors.transparent,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
                     ),
-                    child: TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        hintText: '시나리오 이름',
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12.0),
-                      ),
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      // 수정이 끝나면 Provider에 이름 업데이트
-                      onEditingComplete: () {
-                        strategyNotifier.updateScenarioName(
-                          widget.scenarioIndex,
-                          _nameController.text,
-                        );
-                        FocusScope.of(context).unfocus();
-                      },
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
                     ),
+                    onEditingComplete: () {
+                      strategyNotifier.updateScenarioName(
+                        widget.scenarioIndex,
+                        _nameController.text,
+                      );
+                      FocusScope.of(context).unfocus();
+                    },
                   ),
                 ),
+                // 삭제 버튼
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  icon: Icon(Icons.delete_outline, color: colorScheme.error),
                   onPressed: () {
                     strategyNotifier.removeScenario(widget.scenarioIndex);
                   },
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // --- 2. 스틴트 시각화 ---
+            // --- 2. 스틴트 시각화 (개선된 디자인) ---
             _buildStintVisualization(context, widget.scenario.stints),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // --- 3. 피트 랩 자동 최적화 스위치 ---
-            // (수정) SwitchListTile 배경색 투명하게
-            SwitchListTile(
-              title: const Text('피트 랩 자동 최적화'),
-              value: _isAutoOptimize,
-              onChanged: (newValue) {
-                setState(() {
-                  _isAutoOptimize = newValue;
-                });
-                // (참고: 자동 최적화가 꺼지면 StintEditor의 랩 입력란이 나타남)
-              },
-              contentPadding: EdgeInsets.zero,
-              // (추가) 배경색을 카드와 동일하게
-              tileColor: Colors.transparent,
+            // --- 3. 옵션 스위치 ---
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA), // 내부 섹션 배경색
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SwitchListTile.adaptive(
+                // OS 스타일에 맞는 스위치
+                title: const Text(
+                  '피트 랩 자동 최적화',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'AI가 최적의 타이밍을 계산합니다.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                value: _isAutoOptimize,
+                activeColor: colorScheme.primary,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                onChanged: (newValue) {
+                  setState(() {
+                    _isAutoOptimize = newValue;
+                  });
+                },
+              ),
             ),
-            const Divider(),
 
-            // --- 4. 스틴트 편집 UI (ListView) ---
+            if (!widget.scenario.stints.isEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                "스틴트 상세 설정",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            // --- 4. 스틴트 리스트 ---
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.scenario.stints.length,
               itemBuilder: (context, stintIndex) {
                 final stint = widget.scenario.stints[stintIndex];
-                // 새로 만든 StintEditor 위젯 사용
                 return StintEditor(
                   scenarioIndex: widget.scenarioIndex,
                   stintIndex: stintIndex,
                   stint: stint,
-                  isAutoOptimize: _isAutoOptimize, // 자동 최적화 상태 전달
+                  isAutoOptimize: _isAutoOptimize,
                 );
               },
             ),
 
+            const SizedBox(height: 12),
+
             // --- 5. 스틴트 추가 버튼 ---
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('스틴트 추가'),
-              style: OutlinedButton.styleFrom(
-                // (수정) 회색 배경
-                backgroundColor: Colors.grey.shade200,
-                minimumSize: const Size(double.infinity, 44), // 버튼을 가로로 꽉 채움
-                side: BorderSide.none, // (수정) 테두리 제거
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  strategyNotifier.addStint(
+                    widget.scenarioIndex,
+                    StintRequest(compound: "MEDIUM"),
+                  );
+                },
+                icon: const Icon(Icons.add_circle_outline),
+                label: const Text("스틴트 추가"),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: const Color(0xFFF0F2F5),
+                  foregroundColor: Colors.black87,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
-              onPressed: () {
-                // 스틴트 추가 (기본값: MEDIUM)
-                strategyNotifier.addStint(
-                  widget.scenarioIndex,
-                  StintRequest(compound: "MEDIUM"),
-                );
-              },
             ),
           ],
         ),
@@ -174,77 +187,108 @@ class _StrategyCardState extends ConsumerState<StrategyCard> {
     );
   }
 
-  /// 스틴트 시각화 (image_4fb981.png - S -> M -> S 형태)
+  // 타이어 시각화 (원형 디자인 적용)
   Widget _buildStintVisualization(
     BuildContext context,
     List<StintRequest> stints,
   ) {
     if (stints.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        alignment: Alignment.center,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
         ),
-        child: const Text("스틴트를 추가해 주세요."),
+        child: Column(
+          children: [
+            Icon(Icons.tire_repair, size: 32, color: Colors.grey.shade400),
+            const SizedBox(height: 8),
+            Text(
+              "전략을 구성해주세요",
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            ),
+          ],
+        ),
       );
     }
 
     List<Widget> items = [];
     for (int i = 0; i < stints.length; i++) {
       final stint = stints[i];
-      // 타이어 컴파운드 뱃지
       items.add(_buildTireBadge(stint.compound));
 
-      // 마지막 스틴트가 아니면 화살표 추가
+      // 화살표 대신 얇은 선으로 연결
       if (i < stints.length - 1) {
         items.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0),
-            child: Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+          Expanded(
+            child: Container(
+              height: 2,
+              color: Colors.grey.shade300,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+            ),
           ),
         );
       }
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: items),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, // 간격 균등 배분
+        children: items.length > 1 ? items : [items.first, const Spacer()],
+      ),
     );
   }
 
-  /// 타이어 뱃지 (S, M, H)
+  // 타이어 배지 (원형, 실제 타이어 색상)
   Widget _buildTireBadge(String compound) {
-    // StintEditor.tireColors를 사용하기 위해 StintEditor 위젯 임포트 필요
     final color = StintEditor.tireColors[compound] ?? Colors.grey;
     final isHard = compound == "HARD";
-    // (수정) HARD 타이어일 때 흰색이 아닌 회색 배경 사용
-    final badgeColor = isHard ? Colors.grey.shade200 : color;
-    final textColor = isHard ? Colors.black : Colors.white;
 
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: badgeColor, // (수정)
-        borderRadius: BorderRadius.circular(4),
-        border: isHard ? Border.all(color: Colors.black54) : null,
-      ),
-      child: Center(
-        child: Text(
-          compound[0], // S, M, H
-          style: TextStyle(
-            color: textColor, // (수정)
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+    return Column(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: isHard ? Colors.white : color,
+            shape: BoxShape.circle,
+            // HARD 타이어는 흰색이라 테두리를 두껍게 주어 구분
+            border: Border.all(
+              color: isHard ? Colors.black : color,
+              width: isHard ? 5 : 0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              compound[0], // S, M, H
+              style: TextStyle(
+                color: isHard ? Colors.black : Colors.black,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 6),
+        Text(
+          compound,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }
