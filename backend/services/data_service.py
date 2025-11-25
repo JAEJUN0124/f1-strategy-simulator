@@ -4,7 +4,7 @@ from typing import List
 from models.simulation import RaceInfo, DriverInfo
 from functools import lru_cache
 
-@lru_cache(maxsize=10) 
+@lru_cache(maxsize=30) 
 def load_race_data(year: int, race_id: str):
     """
     (수정됨) FastF1 세션 데이터를 로드합니다 (캐시 활용).
@@ -81,7 +81,7 @@ def get_races_for_year(year: int) -> List[RaceInfo]:
         return []
 
 # 레이스별 드라이버 목록
-@lru_cache(maxsize=20)
+@lru_cache(maxsize=100)
 def get_drivers_for_race(year: int, race_id: str) -> List[DriverInfo]:
     """
     특정 레이스 세션에서 드라이버 목록을 가져옵니다.
