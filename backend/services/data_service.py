@@ -72,11 +72,16 @@ def get_races_for_year(year: int) -> List[RaceInfo]:
             if event['EventDate'] > now:
                 continue
                 
+            # 상세 정보 매핑 추가
             races.append(
                 RaceInfo(
                     raceId=round_num_str, 
                     name=event['EventName'],
-                    round=int(round_num_str)
+                    round=int(round_num_str),
+                    # 추가된 필드들
+                    date=event['EventDate'],
+                    location=event['Location'],
+                    officialName=event['OfficialEventName']
                 )
             )
         

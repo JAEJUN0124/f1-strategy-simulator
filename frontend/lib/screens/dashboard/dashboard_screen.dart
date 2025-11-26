@@ -20,14 +20,10 @@ class DashboardScreen extends ConsumerWidget {
     final AsyncValue<List<RaceInfo>> races = ref.watch(dashboardRacesProvider);
     final int selectedYear = ref.watch(dashboardYearProvider);
 
-    // [수정] 대시보드용 연도 리스트 자동 생성 로직 (2016 ~ Future)
     final int currentYear = DateTime.now().year;
-
-    // 최소 2025년까지는 보장하고, 시간이 흘러 2026년이 되면 2026년도 포함
     final int maxYear = currentYear < 2025 ? 2025 : currentYear;
-    final int minYear = 2016; // 2016년부터 시작
+    final int minYear = 2016;
 
-    // 최신 연도부터 내림차순 정렬
     final List<int> yearList = List.generate(
       maxYear - minYear + 1,
       (index) => maxYear - index,
@@ -36,7 +32,6 @@ class DashboardScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // 1. 시즌 캘린더 섹션
         races.when(
           loading: () =>
               _buildLoadingSection(context, selectedYear, yearList, ref),
@@ -46,19 +41,14 @@ class DashboardScreen extends ConsumerWidget {
             return CollapsibleSection(
               title: '시즌 캘린더',
               icon: Icons.calendar_month_rounded,
-              // 초기 상태를 닫힘(false)으로 설정
               initialIsExpanded: false,
-
-              // 연도 선택 드롭다운
               action: _buildYearDropdown(context, selectedYear, yearList, ref),
-
               previewChild: _buildRaceList(context, raceList, isPreview: true),
               child: _buildRaceList(context, raceList, isPreview: false),
             );
           },
         ),
 
-        // 2. 최근 리포트 섹션
         CollapsibleSection(
           title: '최근 리포트',
           icon: Icons.history_rounded,
@@ -125,7 +115,7 @@ class DashboardScreen extends ConsumerWidget {
       title: '시즌 캘린더',
       icon: Icons.calendar_month_rounded,
       action: _buildYearDropdown(context, year, years, ref),
-      initialIsExpanded: false, // 로딩 중에도 닫힘 상태 유지
+      initialIsExpanded: false,
       child: const Padding(
         padding: EdgeInsets.all(24),
         child: Center(child: CircularProgressIndicator()),
@@ -149,6 +139,112 @@ class DashboardScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         child: Text('데이터 로드 실패: $err'),
       ),
+    );
+  }
+
+  // [추가] 상세 정보 보기 (바텀 시트)
+  void _showRaceDetails(BuildContext context, RaceInfo race) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        // 날짜 포맷팅 (예: 2024-03-02T15:00:00 -> 2024년 3월 2일 15:00)
+        DateTime? eventDate;
+        try {
+          eventDate = DateTime.parse(race.date);
+        } catch (e) {
+          eventDate = null;
+        }
+
+        final formattedDate = eventDate != null
+            ? DateFormat('yyyy년 M월 d일 HH:mm').format(eventDate)
+            : race.date;
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 드래그 핸들
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // 공식 대회명 (제목)
+              Text(
+                race.officialName.isNotEmpty ? race.officialName : race.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 상세 정보 아이템들
+              _buildDetailRow(Icons.calendar_today, "일시", formattedDate),
+              const SizedBox(height: 16),
+              _buildDetailRow(Icons.location_on_outlined, "개최지", race.location),
+              const SizedBox(height: 16),
+              _buildDetailRow(
+                Icons.flag_outlined,
+                "라운드",
+                "Round ${race.round}",
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 20, color: Colors.black54),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -186,6 +282,11 @@ class DashboardScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
+                // [추가] 탭 이벤트 연결
+                onTap: () => _showRaceDetails(context, race),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 leading: Container(
                   width: 40,
                   height: 40,
@@ -209,6 +310,12 @@ class DashboardScreen extends ConsumerWidget {
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
+                ),
+                // [추가] 더보기 아이콘 표시 (클릭 가능함 암시)
+                trailing: Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: Colors.grey.shade400,
                 ),
               ),
             );

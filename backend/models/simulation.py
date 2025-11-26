@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Union
+from datetime import datetime
 
 # --- 기본 데이터 구조 ---
 
@@ -9,6 +10,11 @@ class RaceInfo(BaseModel):
     raceId: str = Field(..., description="레이스 고유 ID (예: '1')")
     name: str = Field(..., description="그랑프리 대회 이름 (예: 'Bahrain Grand Prix')")
     round: int = Field(..., description="시즌 몇 번째 경기인지 (라운드)")
+
+    # 상세 정보 필드
+    date: datetime = Field(..., description="레이스 결승 날짜 및 시간")
+    location: str = Field(..., description="개최지 (예: 'Sakhir')")
+    officialName: str = Field(..., description="공식 대회 전체 명칭")
 
 class DriverInfo(BaseModel):
     """ API: GET /api/drivers/{year}/{race_id} 응답 """

@@ -3,10 +3,18 @@ class RaceInfo {
   final String name;
   final int round;
 
+  // 상세 정보
+  final String date;
+  final String location;
+  final String officialName;
+
   RaceInfo({
     required this.raceId,
     required this.name,
     required this.round,
+    required this.date,
+    required this.location,
+    required this.officialName,
   });
 
   // JSON 파싱을 위한 fromJson 팩토리 생성자
@@ -15,6 +23,9 @@ class RaceInfo {
       raceId: json['raceId'] ?? '',
       name: json['name'] ?? 'Unknown Race',
       round: json['round'] ?? 0,
+      date: json['date'] ?? '',
+      location: json['location'] ?? 'Unknown Location',
+      officialName: json['officialName'] ?? '',
     );
   }
 }
