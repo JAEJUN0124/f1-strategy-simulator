@@ -17,30 +17,41 @@ class DashboardScreen extends ConsumerWidget {
     final List<SimulationResponse> recentReports = ref.watch(
       recentReportsProvider,
     );
-    final AsyncValue<List<RaceInfo>> races = ref.watch(racesProvider);
+    final AsyncValue<List<RaceInfo>> races = ref.watch(dashboardRacesProvider);
+    final int selectedYear = ref.watch(dashboardYearProvider);
+
+    // [수정] 대시보드용 연도 리스트 자동 생성 로직 (2016 ~ Future)
+    final int currentYear = DateTime.now().year;
+
+    // 최소 2025년까지는 보장하고, 시간이 흘러 2026년이 되면 2026년도 포함
+    final int maxYear = currentYear < 2025 ? 2025 : currentYear;
+    final int minYear = 2016; // 2016년부터 시작
+
+    // 최신 연도부터 내림차순 정렬
+    final List<int> yearList = List.generate(
+      maxYear - minYear + 1,
+      (index) => maxYear - index,
+    );
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
         // 1. 시즌 캘린더 섹션
         races.when(
-          loading: () => const Card(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-          error: (err, stack) => Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Error: $err'),
-            ),
-          ),
+          loading: () =>
+              _buildLoadingSection(context, selectedYear, yearList, ref),
+          error: (err, stack) =>
+              _buildErrorSection(context, err, selectedYear, yearList, ref),
           data: (raceList) {
             return CollapsibleSection(
               title: '시즌 캘린더',
               icon: Icons.calendar_month_rounded,
+              // 초기 상태를 닫힘(false)으로 설정
               initialIsExpanded: false,
+
+              // 연도 선택 드롭다운
+              action: _buildYearDropdown(context, selectedYear, yearList, ref),
+
               previewChild: _buildRaceList(context, raceList, isPreview: true),
               child: _buildRaceList(context, raceList, isPreview: false),
             );
@@ -66,6 +77,78 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildYearDropdown(
+    BuildContext context,
+    int selectedYear,
+    List<int> years,
+    WidgetRef ref,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      height: 32,
+      child: DropdownButton<int>(
+        value: selectedYear,
+        underline: const SizedBox(),
+        icon: const Icon(Icons.arrow_drop_down, size: 18),
+        style: TextStyle(
+          color: Theme.of(context).primaryColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+        items: years.map((year) {
+          return DropdownMenuItem<int>(value: year, child: Text('$year'));
+        }).toList(),
+        onChanged: (newYear) {
+          if (newYear != null) {
+            ref.read(dashboardYearProvider.notifier).state = newYear;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoadingSection(
+    BuildContext context,
+    int year,
+    List<int> years,
+    WidgetRef ref,
+  ) {
+    return CollapsibleSection(
+      title: '시즌 캘린더',
+      icon: Icons.calendar_month_rounded,
+      action: _buildYearDropdown(context, year, years, ref),
+      initialIsExpanded: false, // 로딩 중에도 닫힘 상태 유지
+      child: const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+
+  Widget _buildErrorSection(
+    BuildContext context,
+    Object err,
+    int year,
+    List<int> years,
+    WidgetRef ref,
+  ) {
+    return CollapsibleSection(
+      title: '시즌 캘린더',
+      icon: Icons.calendar_month_rounded,
+      action: _buildYearDropdown(context, year, years, ref),
+      initialIsExpanded: false,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('데이터 로드 실패: $err'),
+      ),
     );
   }
 
@@ -103,7 +186,6 @@ class DashboardScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
-                // 라운드 번호
                 leading: Container(
                   width: 40,
                   height: 40,
@@ -128,7 +210,6 @@ class DashboardScreen extends ConsumerWidget {
                     fontSize: 14,
                   ),
                 ),
-                // (수정) Race Week 서브타이틀 삭제됨
               ),
             );
           },
@@ -137,7 +218,7 @@ class DashboardScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 12.0),
             child: Text(
-              "+ ${raceList.length - 3} more races", // 이 부분은 더보기 로직이라 그대로 둠 (원하시면 '개 더보기'로 수정 가능)
+              "+ ${raceList.length - 3} more races",
               style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
             ),
           ),
@@ -229,7 +310,7 @@ class DashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '리포트 #$reportNumber', // (수정) 한글로 변경
+                        '리포트 #$reportNumber',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,

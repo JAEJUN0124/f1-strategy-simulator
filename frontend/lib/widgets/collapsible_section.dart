@@ -14,8 +14,11 @@ class CollapsibleSection extends StatefulWidget {
   /// 접혔을 때 보여줄 미리보기 위젯 (상위 3개)
   final Widget? previewChild;
 
-  /// 초기 펼침 상태 (기본값: true)
+  /// 초기 펼침 상태 (기본값: false)
   final bool initialIsExpanded;
+
+  // 헤더 우측(화살표 왼쪽)에 넣을 커스텀 위젯 (예: 연도 선택 드롭다운)
+  final Widget? action;
 
   const CollapsibleSection({
     super.key,
@@ -23,7 +26,8 @@ class CollapsibleSection extends StatefulWidget {
     required this.icon,
     required this.child,
     this.previewChild,
-    this.initialIsExpanded = true, // 기본적으로 펼쳐진 상태로 시작
+    this.initialIsExpanded = false,
+    this.action,
   });
 
   @override
@@ -31,7 +35,6 @@ class CollapsibleSection extends StatefulWidget {
 }
 
 class _CollapsibleSectionState extends State<CollapsibleSection> {
-  // 현재 섹션이 펼쳐져 있는지 여부를 관리하는 상태
   late bool _isExpanded;
 
   @override
@@ -50,43 +53,80 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      // (수정) CardTheme에서 elevation, shape을 관리함
-      // elevation: 1,
-      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias, // Card의 경계에 맞춰 자식 위젯을 자름
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          // 1. 헤더 (클릭 가능한 영역)
-          ListTile(
-            // 이미지(image_4f48a6.png)와 유사하게 아이콘과 제목 표시
-            leading: Icon(widget.icon, color: Theme.of(context).primaryColor),
-            title: Text(
-              widget.title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          // 1. 헤더 영역 (Row로 터치 영역 분리)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
             ),
-            // 펼침/닫힘 상태에 따라 화살표 아이콘 변경
-            trailing: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
-            onTap: _toggleExpanded, // 탭하면 상태 변경
+            child: Row(
+              children: [
+                // [수정] 왼쪽 영역 (아이콘 + 제목): 여기만 InkWell 적용
+                InkWell(
+                  onTap: _toggleExpanded,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(widget.icon, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 16.0),
+                      Text(
+                        widget.title,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // [수정] 중앙 영역 (드롭다운): InkWell 없음 (버그 해결)
+                if (widget.action != null) ...[
+                  const SizedBox(width: 24), // 텍스트와 드롭다운 사이 간격
+                  widget.action!,
+                ],
+
+                // [수정] 오른쪽 영역 (나머지 빈 공간 + 화살표): 여기도 InkWell 적용
+                Expanded(
+                  child: InkWell(
+                    onTap: _toggleExpanded,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      alignment: Alignment.centerRight, // 우측 정렬
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 4,
+                      ), // 터치 영역 확보
+                      child: Icon(
+                        _isExpanded ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           // 2. 컨텐츠 (펼쳐졌을 때만 보임)
-          // AnimatedCrossFade를 사용하여 부드러운 애니메이션 효과 적용
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 300),
             crossFadeState: _isExpanded
                 ? CrossFadeState.showFirst
                 : CrossFadeState.showSecond,
-            // 펼쳐졌을 때의 위젯 (자식 위젯)
+
+            // 펼쳐졌을 때의 위젯
             firstChild: Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
               child: widget.child,
             ),
-            // (수정) 접혔을 때: 미리보기 내용 (previewChild) 또는 빈 컨테이너
+
+            // 접혔을 때: 미리보기 내용
             secondChild: widget.previewChild != null
                 ? Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                    padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
                     child: widget.previewChild,
                   )
                 : Container(),

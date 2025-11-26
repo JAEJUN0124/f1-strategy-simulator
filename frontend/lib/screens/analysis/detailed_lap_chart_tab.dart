@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// [중요] 클래스 이름이 DetailedLapChartTab 이어야 합니다. (SummaryTab이 아니어야 함)
 class DetailedLapChartTab extends ConsumerWidget {
   const DetailedLapChartTab({super.key});
 
@@ -29,6 +30,23 @@ class DetailedLapChartTab extends ConsumerWidget {
     }
   }
 
+  /// 전략 인덱스에 따라 점선 패턴을 다르게 반환하는 헬퍼 함수
+  List<int>? _getDashArray(int index) {
+    if (index == 0) return null; // 실제: 실선
+    if (index == 1) return [5, 5]; // 최적: 보통 점선
+
+    // 사용자 시나리오들을 위한 패턴 목록
+    const customPatterns = [
+      [2, 2], // 시나리오 2: 촘촘한 점선
+      [10, 5], // 시나리오 3: 긴 점선
+      [2, 5, 10, 5], // 시나리오 4: 점-대시 혼합
+    ];
+
+    // Custom Scenarios는 index 2부터 시작하므로 -2
+    final patternIndex = (index - 2) % customPatterns.length;
+    return customPatterns[patternIndex];
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final result = ref.watch(simulationResultProvider);
@@ -36,6 +54,14 @@ class DetailedLapChartTab extends ConsumerWidget {
 
     final actual = result.actual;
     final optimal = result.optimal;
+
+    // 중복 제거 로직: 이름이 Optimal이나 Actual인 시나리오는 제외
+    final customScenarios = result.scenarios.where((s) {
+      return s.name != 'Optimal' && s.name != 'Actual';
+    }).toList();
+
+    // 모든 전략 리스트 결합
+    final allStrategies = [actual, optimal, ...customScenarios];
 
     double minY = double.infinity;
     double maxY = double.negativeInfinity;
@@ -48,9 +74,11 @@ class DetailedLapChartTab extends ConsumerWidget {
       }
     }
 
-    updateMinMax(actual.lapTimes);
-    updateMinMax(optimal.lapTimes);
+    for (var strategy in allStrategies) {
+      updateMinMax(strategy.lapTimes);
+    }
 
+    // 차트 Y축 여백 확보
     final double padding = (maxY - minY) * 0.1;
     minY -= padding;
     maxY += padding;
@@ -59,6 +87,7 @@ class DetailedLapChartTab extends ConsumerWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          // 1. 타이어 색상 범례
           Card(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -72,17 +101,33 @@ class DetailedLapChartTab extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          const SizedBox(height: 12),
+
+          // 2. 라인 스타일 범례 (시나리오별 이름 표시)
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12.0,
+            runSpacing: 8.0,
             children: [
-              _buildLineStyleLegend(false, "실제 기록 (실선)"), // (수정) 한글로 변경
-              const SizedBox(width: 16),
-              _buildLineStyleLegend(true, "최적 전략 (점선)"), // (수정) 한글로 변경
+              // 고정: 실제, 최적
+              _buildLineStyleLegend(_getDashArray(0), "실제"),
+              _buildLineStyleLegend(_getDashArray(1), "최적"),
+
+              // 동적: 사용자 정의 시나리오들
+              ...customScenarios.asMap().entries.map((entry) {
+                final index = entry.key;
+                final scenario = entry.value;
+                // 전체 전략 리스트에서의 인덱스는 2 + index
+                return _buildLineStyleLegend(
+                  _getDashArray(2 + index),
+                  scenario.name,
+                );
+              }),
             ],
           ),
           const SizedBox(height: 24),
 
+          // 3. 차트
           Expanded(
             child: LineChart(
               LineChartData(
@@ -94,14 +139,28 @@ class DetailedLapChartTab extends ConsumerWidget {
                     tooltipBorder: BorderSide(color: Colors.grey.shade300),
                     getTooltipItems: (spots) {
                       return spots.map((barSpot) {
-                        final isActual = barSpot.barIndex == 0;
+                        final index = barSpot.barIndex;
+                        String name = "";
+                        if (index == 0) {
+                          name = "실제";
+                        } else if (index == 1) {
+                          name = "최적";
+                        } else {
+                          // customScenarios 인덱스 매핑
+                          final scenarioIndex = index - 2;
+                          if (scenarioIndex < customScenarios.length) {
+                            name = customScenarios[scenarioIndex].name;
+                          }
+                        }
+
                         return LineTooltipItem(
-                          '${isActual ? "실제" : "최적"}: ${barSpot.y.toStringAsFixed(2)}s', // (수정) 한글로 변경
+                          '$name: ${barSpot.y.toStringAsFixed(2)}s',
                           TextStyle(
                             color:
                                 barSpot.bar.gradient?.colors.first ??
                                 barSpot.bar.color,
                             fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
                         );
                       }).toList();
@@ -152,10 +211,19 @@ class DetailedLapChartTab extends ConsumerWidget {
                 ),
                 borderData: FlBorderData(show: false),
 
-                lineBarsData: [
-                  _buildColoredLineBar(actual, isDashed: false, opacity: 1.0),
-                  _buildColoredLineBar(optimal, isDashed: true, opacity: 0.6),
-                ],
+                // 모든 전략을 차트에 반영
+                lineBarsData: allStrategies.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final strategy = entry.value;
+
+                  double opacity = (index < 2) ? 1.0 : 0.7;
+
+                  return _buildColoredLineBar(
+                    strategy,
+                    dashArray: _getDashArray(index),
+                    opacity: opacity,
+                  );
+                }).toList(),
               ),
             ),
           ),
@@ -166,6 +234,7 @@ class DetailedLapChartTab extends ConsumerWidget {
 
   Widget _buildLegendItem(Color color, String label) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 10,
@@ -181,18 +250,15 @@ class DetailedLapChartTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildLineStyleLegend(bool isDashed, String label) {
+  Widget _buildLineStyleLegend(List<int>? dashArray, String label) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 24,
-          height: 2,
-          color: Colors.black54,
-          child: isDashed
-              ? const Center(
-                  child: Text("- - -", style: TextStyle(fontSize: 6)),
-                )
-              : null,
+          height: 12,
+          color: Colors.transparent,
+          child: CustomPaint(painter: _LineStylePainter(dashArray: dashArray)),
         ),
         const SizedBox(width: 6),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -202,7 +268,7 @@ class DetailedLapChartTab extends ConsumerWidget {
 
   LineChartBarData _buildColoredLineBar(
     StrategyResult strategy, {
-    required bool isDashed,
+    required List<int>? dashArray,
     required double opacity,
   }) {
     final List<Color> colors = [];
@@ -220,7 +286,7 @@ class DetailedLapChartTab extends ConsumerWidget {
         barWidth: 2,
         isCurved: true,
         dotData: const FlDotData(show: false),
-        dashArray: isDashed ? [5, 5] : null,
+        dashArray: dashArray,
       );
     }
 
@@ -228,6 +294,7 @@ class DetailedLapChartTab extends ConsumerWidget {
       final color = _getTireColor(stint.compound).withOpacity(opacity);
       final startStop = (stint.startLap - 1) / totalLaps;
       final endStop = stint.endLap / totalLaps;
+
       colors.add(color);
       stops.add(startStop);
       colors.add(color);
@@ -244,7 +311,48 @@ class DetailedLapChartTab extends ConsumerWidget {
       barWidth: 3,
       isCurved: true,
       dotData: const FlDotData(show: false),
-      dashArray: isDashed ? [5, 5] : null,
+      dashArray: dashArray,
     );
   }
+}
+
+class _LineStylePainter extends CustomPainter {
+  final List<int>? dashArray;
+
+  _LineStylePainter({this.dashArray});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black54
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final double y = size.height / 2;
+
+    if (dashArray == null) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    } else {
+      double startX = 0;
+      int index = 0;
+      while (startX < size.width) {
+        final double dashWidth = dashArray![index % dashArray!.length]
+            .toDouble();
+        final double gapWidth = dashArray![(index + 1) % dashArray!.length]
+            .toDouble();
+
+        final double endX = (startX + dashWidth > size.width)
+            ? size.width
+            : startX + dashWidth;
+
+        canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
+
+        startX += dashWidth + gapWidth;
+        index += 2;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

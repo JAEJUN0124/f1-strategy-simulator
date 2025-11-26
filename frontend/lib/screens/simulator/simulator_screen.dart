@@ -29,6 +29,46 @@ class SimulatorScreen extends ConsumerWidget {
 
     final textTheme = Theme.of(context).textTheme;
 
+    // [수정] 드라이버 데이터 로드 에러 감지 로직 개선
+    ref.listen<AsyncValue<List<DriverInfo>>>(driversProvider, (previous, next) {
+      // 상태가 Error로 변경되었을 때만 실행
+      next.whenOrNull(
+        error: (error, stackTrace) {
+          final errorMsg = error.toString();
+          // 404 에러이거나 'not found' 메시지가 포함된 경우 (데이터 없음)
+          if (errorMsg.contains('404') || errorMsg.contains('not found')) {
+            Future.microtask(() {
+              if (context.mounted) {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false, // 확인 버튼을 눌러야만 닫히도록
+                  builder: (context) => AlertDialog(
+                    title: const Text('데이터 없음'),
+                    content: const Text(
+                      '선택하신 경기의 데이터가 아직 업데이트되지 않았습니다.\n다른 경기를 선택해주세요.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); // 다이얼로그 닫기
+                          // (선택 사항) 필요하다면 여기서 레이스 선택을 초기화할 수도 있음
+                          // configNotifier.setRace(null);
+                        },
+                        child: const Text('확인'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            });
+          }
+        },
+      );
+    });
+
+    // 시나리오 추가 제한 로직 (3개 미만일 때만 추가 가능)
+    final bool canAddScenario = scenarios.length < 3;
+
     return Scaffold(
       body: Column(
         children: [
@@ -36,6 +76,7 @@ class SimulatorScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
+                // 1. 경기 데이터 선택 카드 (연도 드롭다운 포함)
                 _buildDataSelectionCard(
                   context,
                   textTheme,
@@ -48,11 +89,24 @@ class SimulatorScreen extends ConsumerWidget {
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Text(
-                    '2. 전략 시나리오 정의',
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '2. 전략 시나리오 정의',
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        '${scenarios.length} / 3',
+                        style: TextStyle(
+                          color: canAddScenario ? Colors.grey : Colors.red,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -62,22 +116,37 @@ class SimulatorScreen extends ConsumerWidget {
                   label: const Text('비교 시나리오 추가'),
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: Colors.black87,
+                    foregroundColor: canAddScenario
+                        ? Colors.black87
+                        : Colors.grey,
                     minimumSize: const Size(double.infinity, 52),
-                    side: BorderSide(color: Colors.grey.shade300),
+                    side: BorderSide(
+                      color: canAddScenario
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade200,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
                   ),
-                  onPressed: () {
-                    strategyNotifier.addScenario(
-                      Scenario(
-                        name: "시나리오 ${scenarios.length + 1}",
-                        stints: [],
-                      ),
-                    );
-                  },
+                  onPressed: canAddScenario
+                      ? () {
+                          strategyNotifier.addScenario(
+                            Scenario(
+                              name: "시나리오 ${scenarios.length + 1}",
+                              stints: [],
+                            ),
+                          );
+                        }
+                      : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('시나리오는 최대 3개까지만 추가 가능합니다.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
                 ),
                 const SizedBox(height: 16),
 
@@ -114,6 +183,19 @@ class SimulatorScreen extends ConsumerWidget {
   ) {
     const inputDecoration = InputDecoration(isDense: true);
 
+    // 시뮬레이터용 연도 리스트 자동 생성 로직 (2016 ~ Future)
+    final int currentYear = DateTime.now().year;
+
+    // 최소 2025년까지는 보장하고, 그 이후는 현재 연도까지
+    final int maxYear = currentYear < 2025 ? 2025 : currentYear;
+    final int minYear = 2016;
+
+    // 최신 연도부터 내림차순 정렬
+    final List<int> yearList = List.generate(
+      maxYear - minYear + 1,
+      (index) => maxYear - index,
+    );
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -132,14 +214,16 @@ class SimulatorScreen extends ConsumerWidget {
             DropdownButtonFormField<int>(
               value: config.selectedYear,
               decoration: inputDecoration,
-              items: [2024, 2023, 2022]
+              items: yearList
                   .map(
                     (year) =>
                         DropdownMenuItem(value: year, child: Text('$year 시즌')),
                   )
                   .toList(),
               onChanged: (year) {
-                if (year != null) configNotifier.setYear(year);
+                if (year != null) {
+                  configNotifier.setYear(year);
+                }
               },
             ),
             const SizedBox(height: 16),
@@ -159,7 +243,7 @@ class SimulatorScreen extends ConsumerWidget {
                     : null;
                 return DropdownButtonFormField<String>(
                   value: currentRaceId,
-                  hint: const Text('경기 선택'), // (수정)
+                  hint: const Text('경기 선택'),
                   isExpanded: true,
                   items: raceList
                       .map(
@@ -184,10 +268,14 @@ class SimulatorScreen extends ConsumerWidget {
             drivers.when(
               loading: () =>
                   const Center(child: LinearProgressIndicator(minHeight: 2)),
-              error: (err, stack) => Text(
-                '목록 로드 실패: $err',
-                style: const TextStyle(color: Colors.red),
-              ),
+              // [수정] 에러 발생 시 텍스트 표시 대신 빈 컨테이너나 안내 메시지 (다이얼로그가 뜨므로)
+              error: (err, stack) {
+                // 이미 팝업으로 처리하므로 여기서는 간단히 표시하거나 숨김
+                return const Text(
+                  '데이터 없음',
+                  style: TextStyle(color: Colors.red),
+                );
+              },
               data: (driverList) {
                 final currentDriverId =
                     driverList.any((d) => d.driverId == config.selectedDriverId)
@@ -196,7 +284,7 @@ class SimulatorScreen extends ConsumerWidget {
                 bool isDisabled = driverList.isEmpty;
                 return DropdownButtonFormField<String>(
                   value: currentDriverId,
-                  hint: const Text('드라이버 선택'), // (수정)
+                  hint: const Text('드라이버 선택'),
                   isExpanded: true,
                   items: driverList
                       .map(
@@ -307,7 +395,7 @@ class SimulatorScreen extends ConsumerWidget {
                 }
               },
         child: const Text(
-          '시뮬레이션 실행', // (수정) 한글로만 표기
+          '시뮬레이션 실행',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
       ),

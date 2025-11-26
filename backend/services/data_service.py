@@ -3,6 +3,7 @@ import logging
 from typing import List
 from models.simulation import RaceInfo, DriverInfo
 from functools import lru_cache
+from datetime import datetime # [추가] 날짜 비교를 위해 임포트
 
 @lru_cache(maxsize=20) 
 def load_race_data(year: int, race_id: str):
@@ -38,6 +39,7 @@ def load_race_data(year: int, race_id: str):
 def get_races_for_year(year: int) -> List[RaceInfo]:
     """
     (수정됨) fastf1을 사용하여 해당 연도의 레이스 스케줄을 가져옵니다.
+    [수정] 아직 열리지 않은(데이터가 없는) 미래의 경기는 목록에서 제외합니다.
     """
     try:
         logging.info(f"[data_service] {year}년 스케줄 로드 시도...")
@@ -48,6 +50,9 @@ def get_races_for_year(year: int) -> List[RaceInfo]:
             return []
 
         races = []
+        # [추가] 현재 시간 가져오기
+        now = datetime.now()
+
         for _, event in schedule.iterrows():
             # 'Session5' 접근 대신, 이벤트 이름을 확인합니다.
             event_name_lower = str(event['EventName']).lower() 
@@ -61,6 +66,11 @@ def get_races_for_year(year: int) -> List[RaceInfo]:
             if not round_num_str.isdigit():
                 continue
             # --------------------------
+
+            # [추가] 아직 열리지 않은 경기(미래 날짜)는 데이터가 없으므로 제외
+            # EventDate는 해당 그랑프리의 메인 레이스 날짜입니다.
+            if event['EventDate'] > now:
+                continue
                 
             races.append(
                 RaceInfo(

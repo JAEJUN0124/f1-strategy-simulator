@@ -8,12 +8,14 @@ import 'package:fl_chart/fl_chart.dart';
 class SummaryTab extends ConsumerWidget {
   const SummaryTab({super.key});
 
+  // 시간 포맷팅 헬퍼 함수
   String _formatTime(double totalSeconds) {
     final int hours = totalSeconds ~/ 3600;
     final int minutes = (totalSeconds % 3600) ~/ 60;
     final double seconds = totalSeconds % 60;
-    if (hours > 0)
+    if (hours > 0) {
       return '${hours}h ${minutes}m ${seconds.toStringAsFixed(1)}s';
+    }
     return '${minutes}m ${seconds.toStringAsFixed(2)}s';
   }
 
@@ -24,17 +26,18 @@ class SummaryTab extends ConsumerWidget {
 
     final actual = result.actual;
     final optimal = result.optimal;
-    final scenarios = result.scenarios;
+
+    // 중복 제거 로직 적용 (Optimal 이름 중복 방지)
+    final customScenarios = result.scenarios.where((s) {
+      return s.name != 'Optimal' && s.name != 'Actual';
+    }).toList();
 
     final List<StrategyResult> allStrategies = [
       actual,
-      if (actual.name != optimal.name) optimal,
-      ...scenarios.where(
-        (s) => s.name != optimal.name && s.name != actual.name,
-      ),
+      optimal,
+      ...customScenarios,
     ];
 
-    // 최적 전략이 실제보다 얼마나 빠른지 계산
     final double diff = actual.totalTime - optimal.totalTime;
     final String diffText = diff > 0
         ? "-${diff.toStringAsFixed(2)}초 (단축)"
@@ -55,10 +58,8 @@ class SummaryTab extends ConsumerWidget {
           children: [
             StatCard(title: '나의 기록', value: _formatTime(actual.totalTime)),
             StatCard(
-              // (수정) 텍스트 변경: 'AI 최적 전략' -> '최적 전략'
               title: '최적 전략',
               value: _formatTime(optimal.totalTime),
-              // (수정) 색상 복구: 테마색(빨강) -> 초록색
               color: Colors.green,
             ),
             StatCard(title: '시간 차이', value: diffText, color: diffColor),
@@ -85,6 +86,25 @@ class SummaryTab extends ConsumerWidget {
                   child: BarChart(
                     BarChartData(
                       alignment: BarChartAlignment.spaceAround,
+                      // [수정] 툴팁 커스터마이징 추가
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (group) =>
+                              Colors.blueGrey.shade800, // 툴팁 배경색
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            // rod.toY는 초 단위 시간
+                            return BarTooltipItem(
+                              _formatTime(rod.toY), // 포맷팅된 시간 문자열 사용
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                       barGroups: _buildBarGroups(
                         context,
                         allStrategies,
@@ -144,12 +164,12 @@ class SummaryTab extends ConsumerWidget {
     return strategies.asMap().entries.map((entry) {
       final index = entry.key;
       final strategy = entry.value;
-      final isOptimal = strategy.name == optimal.name;
+      // 이름으로 비교하거나 인덱스로 비교 (여기서는 인덱스 1이 최적)
+      final isOptimal = index == 1;
       final isActual = index == 0;
 
       Color barColor;
       if (isOptimal) {
-        // (수정) 그래프 색상 복구: 빨간색 -> 초록색
         barColor = Colors.green;
       } else if (isActual) {
         barColor = Colors.grey.shade800;
@@ -180,9 +200,17 @@ class SummaryTab extends ConsumerWidget {
     final index = value.toInt();
     if (index < 0 || index >= strategies.length) return const SizedBox();
 
+    // 인덱스 기반으로 이름 매핑
     String text = strategies[index].name;
-    if (text == "Actual") text = "실제";
-    if (text == "Optimal") text = "최적";
+    if (index == 0)
+      text = "실제";
+    else if (index == 1)
+      text = "최적";
+
+    // 시나리오 이름이 너무 길 경우 처리 (선택 사항)
+    if (text.length > 8) {
+      text = text.substring(0, 8) + "..";
+    }
 
     return SideTitleWidget(
       meta: meta,
