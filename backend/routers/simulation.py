@@ -8,7 +8,16 @@ router = APIRouter()
 
 @router.post("/api/simulate", response_model=SimulationResponse)
 async def run_simulation(request: SimulationRequest):
-    """ simulation_service를 호출하여 실제 시뮬레이션 결과 반환 """
+    """
+    [시뮬레이션 실행] POST /api/simulate
+    프론트엔드에서 보낸 설정값(연도, 레이스, 드라이버, 타이어 전략 등)을 받아 시뮬레이션을 수행합니다.
+    
+    반환값:
+    - actual: 실제 해당 경기에서 드라이버가 수행한 기록
+    - optimal: AI가 계산한 해당 경기의 최적 전략
+    - scenarios: 사용자가 직접 구성한 커스텀 전략들의 예측 결과
+    - raceEvents: 경기 중 발생한 SC(세이프티카) 등의 이벤트 정보
+    """
 
     try:
         # --- (정상 실행) ---

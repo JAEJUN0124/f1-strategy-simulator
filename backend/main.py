@@ -11,8 +11,8 @@ from routers import data, simulation
 logging.basicConfig(level=logging.INFO)
 
 # --- FastAPI 앱 및 스케줄러 초기화 ---
-app = FastAPI()
-scheduler = AsyncIOScheduler()
+app = FastAPI() # FastAPI 애플리케이션 객체 생성
+scheduler = AsyncIOScheduler()  # 비동기 작업을 위한 스케줄러 생성
 
 # --- CORS 설정 ---
 # 로컬 개발 환경(Flutter Web/App)에서의 접근을 허용합니다.
@@ -35,8 +35,8 @@ app.add_middleware(
 )
 
 # --- 라우터 포함 ---
-app.include_router(data.router)
-app.include_router(simulation.router)
+app.include_router(data.router)         # 데이터 조회 관련 API (레이스, 드라이버 목록)
+app.include_router(simulation.router)   # 시뮬레이션 실행 관련 API
 # ------------------
 
 # --- 앱 시작/종료 이벤트 ---
@@ -72,8 +72,9 @@ async def shutdown_event():
 @app.get("/health", status_code=200)
 async def health_check(response: Response):
     """
-    서버 상태 확인용 헬스체크 엔드포인트
-    로드 밸런서나 오케스트레이션 도구에서 호출
+    [헬스 체크] GET /health
+    서버가 정상적으로 동작 중인지 확인하기 위한 엔드포인트입니다.
+    로드 밸런서나 모니터링 도구가 주기적으로 호출합니다.
     """
     # 여기에 DB 연결 확인이나 필수 서비스 상태 확인 로직을 추가할 수 있습니다.
     # 예: if not db.is_connected(): response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -83,6 +84,7 @@ async def health_check(response: Response):
 @app.get("/")
 async def read_root():
     """
-    서버 상태 확인용 "Hello World"
+    [루트 경로] GET /
+    서버 접속 시 가장 먼저 보여지는 기본 메시지입니다.
     """
     return {"message": "F1 Strategy Simulator (v4) Backend - Hello World"}
