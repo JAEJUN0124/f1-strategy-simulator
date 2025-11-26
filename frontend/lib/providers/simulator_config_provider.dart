@@ -3,9 +3,17 @@ import '../models/simulator_config_state.dart';
 
 /// 사용자의 시뮬레이터 옵션 선택 상태를 관리하는 Notifier
 class SimulatorConfigNotifier extends StateNotifier<SimulatorConfigState> {
-  // 초기 상태 설정 (예: 2024년)
+  // [수정] 초기 상태를 고정값(2024)이 아닌 동적 최신 연도로 설정
   SimulatorConfigNotifier()
-      : super(const SimulatorConfigState(selectedYear: 2024));
+    : super(SimulatorConfigState(selectedYear: _getInitialYear()));
+
+  /// 초기 연도 계산 (현재 연도와 2025년 중 더 큰 값)
+  /// SimulatorScreen의 목록 생성 로직과 동일하게 맞춤
+  static int _getInitialYear() {
+    final int currentYear = DateTime.now().year;
+    // 최소 2025년까지는 보장하고, 시간이 흘러 2026년이 되면 2026년 반환
+    return currentYear < 2025 ? 2025 : currentYear;
+  }
 
   /// 연도 선택
   void setYear(int year) {
@@ -28,5 +36,5 @@ class SimulatorConfigNotifier extends StateNotifier<SimulatorConfigState> {
 /// 시뮬레이터 설정 상태 Provider
 final simulatorConfigProvider =
     StateNotifierProvider<SimulatorConfigNotifier, SimulatorConfigState>((ref) {
-  return SimulatorConfigNotifier();
-});
+      return SimulatorConfigNotifier();
+    });
