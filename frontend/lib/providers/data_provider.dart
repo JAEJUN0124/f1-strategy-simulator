@@ -40,8 +40,13 @@ final driversProvider = FutureProvider<List<DriverInfo>>((ref) async {
 
 // --- 대시보드 전용 Provider ---
 
-/// 대시보드에서 선택된 연도 상태 관리 (기본값: 2024)
-final dashboardYearProvider = StateProvider<int>((ref) => 2024);
+/// 대시보드에서 선택된 연도 상태 관리
+/// [수정] 기본값을 고정(2024)이 아닌 동적 최신 연도로 변경
+final dashboardYearProvider = StateProvider<int>((ref) {
+  final int currentYear = DateTime.now().year;
+  // 최소 2025년까지는 보장하고, 시간이 흘러 2026년이 되면 2026년이 기본값
+  return currentYear < 2025 ? 2025 : currentYear;
+});
 
 /// 대시보드 연도에 따른 레이스 목록 조회
 final dashboardRacesProvider = FutureProvider<List<RaceInfo>>((ref) async {
