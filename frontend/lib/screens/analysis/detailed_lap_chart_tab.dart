@@ -12,6 +12,8 @@ class DetailedLapChartTab extends ConsumerWidget {
   static const Color mediumColor = Color(0xFFFFCC00);
   static const Color hardColor = Color(0xFFFFFFFF);
   static const Color hardColorDisplay = Color(0xFF9E9E9E);
+  static const Color interColor = Color(0xFF43A047); // 초록색 (Intermediate)
+  static const Color wetColor = Color(0xFF1E88E5);   // 파란색 (Wet)
 
   Color _getTireColor(String compound) {
     switch (compound.toUpperCase()) {
@@ -22,9 +24,9 @@ class DetailedLapChartTab extends ConsumerWidget {
       case 'HARD':
         return hardColorDisplay;
       case 'INTERMEDIATE':
-        return Colors.green;
+        return interColor; 
       case 'WET':
-        return Colors.blue;
+        return wetColor;   
       default:
         return Colors.black;
     }
@@ -97,6 +99,8 @@ class DetailedLapChartTab extends ConsumerWidget {
                   _buildLegendItem(softColor, "Soft"),
                   _buildLegendItem(mediumColor, "Medium"),
                   _buildLegendItem(hardColorDisplay, "Hard"),
+                  _buildLegendItem(interColor, "Inter"),
+                  _buildLegendItem(wetColor, "Wet"),
                 ],
               ),
             ),

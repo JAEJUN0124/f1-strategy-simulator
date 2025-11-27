@@ -19,11 +19,13 @@ class StintEditor extends ConsumerStatefulWidget {
     required this.isAutoOptimize,
   });
 
-  // (추가) 타이어 컴파운드별 색상과 이름을 관리하는 맵
+  // 타이어 컴파운드별 색상과 이름을 관리하는 맵
   static const Map<String, Color> tireColors = {
     "SOFT": Colors.red,
     "MEDIUM": Colors.yellow,
     "HARD": Colors.white,
+    "INTERMEDIATE": Colors.green,
+    "WET": Colors.blue,
   };
 
   @override
@@ -135,6 +137,7 @@ class _StintEditorState extends ConsumerState<StintEditor> {
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 10),
             ),
+            // tireColors 맵을 사용하여 아이템 생성 (Inter, Wet 포함됨)
             items: StintEditor.tireColors.keys
                 .map(
                   (compound) =>
