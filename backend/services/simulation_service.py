@@ -114,8 +114,8 @@ def model_tire_degradation(driver_laps: pd.DataFrame) -> Dict[str, float]:
     if "SOFT" not in degradation_models: degradation_models["SOFT"] = 0.15
     if "MEDIUM" not in degradation_models: degradation_models["MEDIUM"] = 0.1
     if "HARD" not in degradation_models: degradation_models["HARD"] = 0.08
-    if "INTERMEDIATE" not in degradation_models: degradation_models["INTERMEDIATE"] = 0.12
-    if "WET" not in degradation_models: degradation_models["WET"] = 0.15
+    if "INTERMEDIATE" not in degradation_models: degradation_models["INTERMEDIATE"] = 0.5
+    if "WET" not in degradation_models: degradation_models["WET"] = 0.8
 
     return degradation_models
 
