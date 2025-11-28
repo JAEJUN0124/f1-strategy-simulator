@@ -336,8 +336,10 @@ class SimulatorScreen extends ConsumerWidget {
         scenarios.isNotEmpty &&
         scenarios.every((s) => s.stints.isNotEmpty);
 
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [

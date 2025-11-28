@@ -150,6 +150,7 @@ class DashboardScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      isScrollControlled: true,
       builder: (context) {
         // 날짜 포맷팅 (예: 2024-03-02T15:00:00 -> 2024년 3월 2일 15:00)
         DateTime? eventDate;
@@ -164,7 +165,12 @@ class DashboardScreen extends ConsumerWidget {
             : race.date;
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            12,
+            24,
+            32 + MediaQuery.of(context).padding.bottom,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

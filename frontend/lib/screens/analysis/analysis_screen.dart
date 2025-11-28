@@ -58,10 +58,15 @@ class AnalysisScreen extends ConsumerWidget {
           ),
         ),
         body: const TabBarView(children: [SummaryTab(), DetailedLapChartTab()]),
-        
+
         // 하단 고정 삭제 버튼 영역
         bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.fromLTRB(
+            16.0,
+            16.0,
+            16.0,
+            16.0 + MediaQuery.of(context).padding.bottom,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border(top: BorderSide(color: Colors.grey.shade200)),
@@ -88,10 +93,7 @@ class AnalysisScreen extends ConsumerWidget {
                   ),
                   title: const Text(
                     '리포트 삭제',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                   ),
                   content: const Text(
                     '이 리포트를 영구적으로 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.',
@@ -133,9 +135,7 @@ class AnalysisScreen extends ConsumerWidget {
                       ),
                       child: const Text(
                         '삭제',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
                   ],
@@ -147,7 +147,7 @@ class AnalysisScreen extends ConsumerWidget {
                     .read(recentReportsProvider.notifier)
                     .removeReport(result.reportId);
                 if (context.mounted) {
-                  Navigator.pop(context); 
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('리포트가 삭제되었습니다.'),
